@@ -260,7 +260,8 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
     
     # Load model
     model = ResNet(arch, block, layers, **kwargs)
-    
+    model = nn.DataParallel(model)
+
     # Load imagenet state dict
     state_dict = load_state_dict_from_url(_MODEL_URLS[arch])
     
@@ -294,6 +295,7 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
     model.fc = InternalClassifier(num_ftrs, num_classes)  # nn.Linear(num_ftrs, num_classes)
   else: 
     model = ResNet(arch, block, layers, **kwargs)
+    model = nn.DataParallel(model)
     if pretrained:
       model = model_utils.load_model(model, kwargs)
   
