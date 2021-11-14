@@ -108,7 +108,7 @@ class CascadedEvalLoop(object):
       global embedding  # pylint: disable=global-variable-undefined
       embedding = x[0]
       
-    if net._multiple_fcs:
+    if net.module._multiple_fcs:
       for i, fc in enumerate(net.fcs):
         fc.register_forward_hook(embedding_hook_fn)
     else:
