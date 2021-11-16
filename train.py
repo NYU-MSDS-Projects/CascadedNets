@@ -9,6 +9,8 @@ import torch, gc
 from collections import defaultdict, OrderedDict
 from datasets.dataset_handler import DataHandler
 from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.multiprocessing as mp
+import torch.distributed as dist
 from models import densenet
 from models import resnet
 from models import sdn_utils
@@ -118,7 +120,7 @@ def setup_args():
   # Other
   parser.add_argument("--use_cpu", action="store_true", default=False,
                       help="Use cpu")
-  parser.add_argument("--device", type=int, default=0,
+  parser.add_argument("--device", type=str, default='0',
                       help="GPU device num")
   parser.add_argument("--n_epochs", type=int, default=150,
                       help="Number of epochs to train")
@@ -227,6 +229,7 @@ def setup_dataset(args):
 
 
 def setup_model(data_handler, device, args, save_root=""):
+
   # Model
   model_dict = {
       "seed": args.random_seed,
@@ -259,6 +262,10 @@ def setup_model(data_handler, device, args, save_root=""):
   print("current device", torch.cuda.current_device())
   print("device count", torch.cuda.device_count())
   print("Instantiating model...")
+
+  print("DEVICE", device)
+  print(type(device))
+  
   for k in model_init_op.__dict__.keys():
     print(k, model_init_op.__dict__[k])
   print("model_dict")
@@ -384,29 +391,17 @@ def condition_model(save_root, args):
   return returns
 
 
-def main(args):
-  # Make reproducible
-  utils.make_reproducible(args.random_seed)
-
-  # Set Device
-  gc.collect()
-  torch.cuda.empty_cache()
-  device = torch.device(
-    args.device
-    if torch.cuda.is_available() and not args.use_cpu
-    else "cpu"
-  )
-
-  # Setup output directory
-  #save_root = setup_output_dir(args)
+def train(device, world_size, save_root, args):
+  dist.init_process_group(                                   
+    	backend='nccl',                                         
+   		init_method='env://',                                   
+    	world_size=world_size,                              
+    	rank=device)
 
   # Setup dataset loader
   data_handler, loaders = setup_dataset(args)
-  
-  # Setup model
-  save_root = ""
-  print("args",args)
-  net = setup_model(data_handler, device, args, save_root=save_root)
+
+  net = setup_model(data_handler, device, world_size, args, save_root=save_root)
 
   # Condition model and get handler opts
   opts = condition_model(save_root, args)
@@ -543,6 +538,32 @@ def main(args):
   utils.save_model(net, optimizer, save_root, epoch_i, args.debug)
   utils.save_metrics(metrics, save_root, args.debug)
   print("Fin.")
+
+  
+def main(args):
+  # Make reproducible
+  utils.make_reproducible(args.random_seed)
+
+  # Set Device
+  #gc.collect()
+  #torch.cuda.empty_cache()
+  print("DEVICE_COUNT", torch.cuda.device_count())
+  device = torch.device(
+    "cuda"
+    #if torch.cuda.is_available() and not args.use_cpu
+    #else "cpu"
+  )
+  world_size = torch.cuda.device_count()
+  print("DEVICE", device)
+  print("WORLD_SIZE", world_size)
+  
+  # Setup model
+  save_root = ""
+  mp.spawn(train, nprocs = world_size, args = (save_root, args))
+
+  
+  
+  
   
 if __name__ == "__main__":
   args = setup_args()
