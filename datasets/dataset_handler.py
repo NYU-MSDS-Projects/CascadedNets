@@ -13,6 +13,7 @@ class DataHandler:
       self,
       dataset_name,
       data_root,
+      experiment_root,
       val_split=0.1,
       test_split=0.1,
       split_idxs_root="split_idxs",
@@ -24,6 +25,7 @@ class DataHandler:
     """Initialize dataset handler."""
     self.dataset_name = dataset_name
     self.data_root = data_root
+    self.experiment_root = experiment_root
     self.test_split = test_split
     self.val_split = val_split
     self.noise_type = noise_type
@@ -121,11 +123,13 @@ class DataHandler:
         self.val_split,
         self.split_idxs_root
       )
-    elif self.dataset_name.lower() == "imagenet2012":
+    elif str.find(self.dataset_name.lower(), "imagenet2012")>-1:
       # Build path dataframe
-      path_df = imagenet2012_handler.build_path_df(self.data_root)
+      print("EXPERIMENT_ROOT", self.experiment_root)
+      path_df = imagenet2012_handler.build_path_df(self.data_root, self.experiment_root)
       assert len(path_df), "Failed to load path df"
       
+      print(f"size of path_df: {len(path_df)}")
       # Subset data
       if "imagenet_params" in self._kwargs:
         path_df = imagenet2012_handler.subset_path_df(
@@ -142,7 +146,8 @@ class DataHandler:
         path_df, 
         self.val_split, 
         self.test_split,
-        self.split_idxs_root
+        self.split_idxs_root,
+        self.experiment_root
       )
     
     return dataset_dict

@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict, Counter
 from PIL import Image
-from datasets.ImagenetClassLabels import ImagenetLabels
+from datasets.Imagenet16ClassLabels import Imagenet16Labels
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as T
 import time
@@ -49,7 +49,9 @@ def split_dataset(path_df, val_split=0.1, test_split=0.1, split_idxs_root=""):
 
 def subset_path_df(path_df, params):
   target_classes = params.get("target_classes", [])
+  print(target_classes)
   if target_classes:
+    print("subsetting_dfs")
     subset_dfs = []
     for target_class in target_classes:
       df_i = path_df[path_df.class_lbl.str.contains(target_class)]
@@ -58,6 +60,9 @@ def subset_path_df(path_df, params):
   
   n_subset_classes = path_df.class_lbl.unique().shape[0]
   max_classes = params.get("max_classes", 0)
+  print(f"n_subset_classes: {n_subset_classes}")
+  print(f"max_classes: {max_classes}")
+
   if max_classes and max_classes < n_subset_classes:
     cls_counts = Counter(path_df.class_lbl)
     count_df = pd.DataFrame({
@@ -68,16 +73,16 @@ def subset_path_df(path_df, params):
     selected_classes = list(count_df.iloc[:max_classes].class_lbl)
     path_df = path_df[path_df.class_lbl.isin(selected_classes)]
   
-  # Set class labels
+  # Set class label
   class_labels = np.sort(path_df.class_lbl.unique())
   lookup = {lbl: i for i, lbl in enumerate(class_labels)}
   path_df["y"] = [lookup[class_lbl] for class_lbl in path_df.class_lbl]
-  
+  print(f"PATH DF SIZE AFTER SUBSET FUNCTION CALL: {len(path_df)}")
   return path_df
 
-def build_path_df(root, subdir='ImageNet2012/ILSVRC/Data/CLS-LOC/train'):
+def build_path_df(root, experiment_root, subdir='train'):
   # Label handler
-  label_handler = ImagenetLabels()
+  label_handler = Imagenet16Labels(experiment_root)
   
   # Set path
   dataset_path = os.path.join(root, subdir)
@@ -86,16 +91,21 @@ def build_path_df(root, subdir='ImageNet2012/ILSVRC/Data/CLS-LOC/train'):
   class_dirs = glob.glob(f'{dataset_path}/*')
 
   df_dict = defaultdict(list)
+  print(label_handler.train_classes)
   for class_dir in class_dirs:
-    class_id = os.path.basename(class_dir)
-    class_lbl = label_handler.lookup_lbl(class_id)
+    class_id = class_dir[str.find(class_dir, "/n")+1:]
+    print(class_id)
+    if class_id in(label_handler.train_classes):
+      #class_id = os.path.basename(class_dir)
+      class_lbl = label_handler.lookup_lbl(class_id)
 
-    img_paths = glob.glob(f"{class_dir}/*")
-    for img_path in img_paths:
-      df_dict["class_lbl"].append(class_lbl)
-      df_dict["class_id"].append(class_id)
-      df_dict["path"].append(img_path)
+      img_paths = glob.glob(f"{class_dir}/*")
+      for img_path in img_paths:
+        df_dict["class_lbl"].append(class_lbl)
+        df_dict["class_id"].append(class_id)
+        df_dict["path"].append(img_path)
   path_df = pd.DataFrame(df_dict)
+  print(f"PATH_DF LEN: {len(path_df)}")
   return path_df
 
     
@@ -182,9 +192,10 @@ class ImagenetDataset(Dataset):
     return img, y  #, label
 
 
-def create_datasets(path_df, val_split, test_split, split_idxs_root):
+def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_root):
   # Label handler
-  label_handler = ImagenetLabels()
+  print(f"CREATE_DATASETS PATH_DF: {len(path_df)}")
+  label_handler = Imagenet16Labels(experiment_root)
 
   # Make sure split idx root exists
   if not os.path.exists(split_idxs_root):
