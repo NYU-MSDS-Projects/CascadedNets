@@ -5,9 +5,10 @@ import glob
 import numpy as np
 import os
 import sys
-import torch
+import torch, gc
 from collections import defaultdict, OrderedDict
 from datasets.dataset_handler import DataHandler
+from torch.nn.parallel import DistributedDataParallel as DDP
 from models import densenet
 from models import resnet
 from models import sdn_utils
@@ -16,6 +17,7 @@ from modules import losses
 from modules import train_handler
 from modules import utils
 from torch import optim
+import time
 
 
 def setup_args():
@@ -229,7 +231,7 @@ def setup_model(data_handler, device, args, save_root=""):
   model_dict = {
       "seed": args.random_seed,
       "num_classes": data_handler.num_classes,
-      "pretrained": False,
+      "pretrained": args.use_pretrained_weights,
       "train_mode": args.train_mode,
       "cascaded": args.cascaded,
       "cascaded_scheme": args.cascaded_scheme,
@@ -243,7 +245,7 @@ def setup_model(data_handler, device, args, save_root=""):
           "temporal_stats": args.bn_time_stats,
       },
       "imagenet": args.dataset_name == "ImageNet2012",
-      "imagenet_pretrained": args.dataset_name == "ImageNet2012" and args.use_imagenet_pretrained_weights,
+      "imagenet_pretrained": args.dataset_name == "ImageNet2012" and args.use_pretrained_weights,
       "n_channels": 1 if args.dataset_name == "FashionMNIST" else 3
   }
 
@@ -257,6 +259,11 @@ def setup_model(data_handler, device, args, save_root=""):
   print("current device", torch.cuda.current_device())
   print("device count", torch.cuda.device_count())
   print("Instantiating model...")
+  for k in model_init_op.__dict__.keys():
+    print(k, model_init_op.__dict__[k])
+  print("model_dict")
+  for k in model_dict.keys():
+    print(k, model_dict[k])
   net =model_init_op.__dict__[args.model_key](**model_dict).to(device)
   print(type(net))
   print("Model instantiated.")
@@ -382,6 +389,8 @@ def main(args):
   utils.make_reproducible(args.random_seed)
 
   # Set Device
+  gc.collect()
+  torch.cuda.empty_cache()
   device = torch.device(
     args.device
     if torch.cuda.is_available() and not args.use_cpu
@@ -396,6 +405,7 @@ def main(args):
   
   # Setup model
   save_root = ""
+  print("args",args)
   net = setup_model(data_handler, device, args, save_root=save_root)
 
   # Condition model and get handler opts
@@ -456,6 +466,7 @@ def main(args):
     for epoch_i in range(args.n_epochs):
       print(f"\nEpoch {epoch_i+1}/{args.n_epochs}")
       # Train net
+      start_time = time.time()
       train_loss, train_acc = train_fxn(
         net, 
         loaders["train"], 
@@ -464,6 +475,7 @@ def main(args):
         optimizer, 
         device,
       )
+      end_time = time.time()
 
       # Log train metrics
       metrics["train"]["loss"].append((epoch_i, train_loss))
@@ -481,7 +493,8 @@ def main(args):
         train_acc_val = np.mean(train_acc, axis=0)[-1] * 100
 
       stdout_str = (f"\nAvg. Train Loss: {train_loss_val:0.6f} -- "
-                    f"Avg. Train Acc: {train_acc_val:0.2f}%")
+                    f"Avg. Train Acc: {train_acc_val:0.2f}%"
+                    f"Train time: {end_time-start_time}")
 
       if epoch_i % args.eval_freq == 0:
         # Evaluate net
