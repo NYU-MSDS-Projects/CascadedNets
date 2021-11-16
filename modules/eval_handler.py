@@ -35,7 +35,7 @@ class SequentialEvalLoop:
     def embedding_hook_fn(module, x, output):  # pylint: disable=unused-argument
       global embedding  # pylint: disable=global-variable-undefined
       embedding = x[0]
-    _ = net.fc.register_forward_hook(embedding_hook_fn)
+    _ = net.module.fc.register_forward_hook(embedding_hook_fn)
 
     for batch_i, (data, targets) in enumerate(loader):
       if self.verbose:
@@ -109,10 +109,10 @@ class CascadedEvalLoop(object):
       embedding = x[0]
       
     if net.module._multiple_fcs:
-      for i, fc in enumerate(net.fcs):
+      for i, fc in enumerate(net.module.fcs):
         fc.register_forward_hook(embedding_hook_fn)
     else:
-      net.fc.register_forward_hook(embedding_hook_fn)
+      net.module.fc.register_forward_hook(embedding_hook_fn)
     
     batch_losses = []
     batch_correct = []
