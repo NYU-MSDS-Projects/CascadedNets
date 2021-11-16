@@ -28,7 +28,7 @@ class ImagenetLabels:
     print(f"Loading data from {self.savepath}")
     with open(self.savepath, 'r') as infile:
       data = json.load(infile)
-
+    self.train_classes = [val[0] for val in data.values()]
     data = {int(key): val for key, val in data.items()}
     self.idx_to_class = {key: val[0] for key, val in data.items()}
     self.idx_to_label = {key: val[1] for key, val in data.items()}
@@ -41,6 +41,7 @@ class ImagenetLabels:
 
     self.num_classes = len(data)
     print("Fin.")
+    print(f"NUMBER OF CLASSES:{self.num_classes}")
 
   def sample_classes(self, num_classes=10, target_labels=[]):
     if len(target_labels):
