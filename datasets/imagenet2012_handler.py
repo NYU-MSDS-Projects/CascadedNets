@@ -91,21 +91,18 @@ def build_path_df(root, experiment_root, subdir='train'):
   class_dirs = glob.glob(f'{dataset_path}/*')
 
   df_dict = defaultdict(list)
-  print(label_handler.train_classes)
   for class_dir in class_dirs:
-    class_id = class_dir[str.find(class_dir, "/n")+1:]
-    print(class_id)
-    if class_id in(label_handler.train_classes):
-      #class_id = os.path.basename(class_dir)
-      class_lbl = label_handler.lookup_lbl(class_id)
+    class_id = os.path.basename(class_dir)
+    class_lbl = label_handler.lookup_lbl(class_id)
 
-      img_paths = glob.glob(f"{class_dir}/*")
-      for img_path in img_paths:
-        df_dict["class_lbl"].append(class_lbl)
-        df_dict["class_id"].append(class_id)
-        df_dict["path"].append(img_path)
+    img_paths = glob.glob(f"{class_dir}/*")
+    for img_path in img_paths:
+      df_dict["class_lbl"].append(class_lbl)
+      df_dict["class_id"].append(class_id)
+      df_dict["path"].append(img_path)
   path_df = pd.DataFrame(df_dict)
-  print(f"PATH_DF LEN: {len(path_df)}")
+  print(len(path_df))
+  print(path_df.head(10))
   return path_df
 
     
