@@ -17,6 +17,11 @@ from modules import train_handler
 from modules import utils
 from torch import optim
 
+#added by PG
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.nn as nn
+
+
 
 def setup_args():
   parser = argparse.ArgumentParser()
@@ -397,6 +402,12 @@ def main(args):
   # Setup model
   save_root = ""
   net = setup_model(data_handler, device, args, save_root=save_root)
+
+  net = nn.DataParallel(net)  ##Changed by PG
+  net.to(device)
+  print("parallel wrapper executed")
+
+
 
   # Condition model and get handler opts
   opts = condition_model(save_root, args)

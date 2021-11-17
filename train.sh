@@ -1,16 +1,16 @@
 #!/bin/bash
 
-DATASET_ROOT="/hdd/mliuzzolino/datasets"  # Specify location of datasets
-EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_nets"  # Specify experiment root
-SPLIT_IDXS_ROOT="/hdd/mliuzzolino/split_idxs"  # Specify root of dataset split_idxs
+DATASET_ROOT="/vast/work/public/ml-datasets/"
+EXPERIMENT_ROOT="/scratch/ppg228/1006_capstone/cascade_net_roots/experiment_roots"  # Specify experiment root
+SPLIT_IDXS_ROOT="/scratch/ppg228/1006_capstone/cascade_net_roots/split_idx_roots"  # Specify root of dataset split_idxs
 
 MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
 DATASET_NAME="ImageNet2012"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
-TRAIN_MODE="baseline"  # baseline, cascaded
-CASCADED_SCHEME="serial"  # serial, parallel
+TRAIN_MODE="cascaded"  # baseline, cascaded
+CASCADED_SCHEME="parallel"  # serial, parallel
 MULTIPLE_FCS=false
 
 LAMBDA_VALS=(0.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
@@ -37,7 +37,7 @@ for RANDOM_SEED in "${RANDOM_SEEDS[@]}"
 do
     for LAMBDA_VAL in "${LAMBDA_VALS[@]}"
     do
-      cmd=( python train.py )   # create array with one element
+      cmd=( python /home/ppg228/1006_capstone/CascadedNets/train_DDP.py)   # create array with one element
       cmd+=( --device $DEVICE )
       cmd+=( --random_seed $RANDOM_SEED )
       cmd+=( --dataset_root $DATASET_ROOT )

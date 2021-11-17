@@ -5,6 +5,12 @@ from datasets import cifar_handler
 from datasets import tinyimagenet_handler
 from datasets import imagenet2012_handler
 
+# NEW
+import torch.distributed as dist
+import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data.distributed import DistributedSampler
+
 
 class DataHandler:
   """Handler for datasets."""
@@ -13,17 +19,21 @@ class DataHandler:
       self,
       dataset_name,
       data_root,
+      rank,
+      world_size,
       val_split=0.1,
       test_split=0.1,
       split_idxs_root="split_idxs",
       noise_type=None,
       load_previous_splits=True,
-      verbose=True, 
+      verbose=True,
       **kwargs
     ):
     """Initialize dataset handler."""
     self.dataset_name = dataset_name
     self.data_root = data_root
+    self.rank = rank
+    self.world_size = world_size
     self.test_split = test_split
     self.val_split = val_split
     self.noise_type = noise_type
@@ -151,6 +161,8 @@ class DataHandler:
       self,
       dataset_key,
       flags,
+      rank,
+      world_size,
       dont_shuffle_train=False
     ):
     """Build dataset loader."""
@@ -158,19 +170,21 @@ class DataHandler:
     # Get dataset source
     dataset_src = self.datasets[dataset_key]
 
-    # Specify shuffling
-    if dont_shuffle_train:
-      shuffle = False
-    else:
-      shuffle = dataset_key == "train"
-    
+    # Specify shuffling (incompatable with sampler)
+    # if dont_shuffle_train:
+    #   shuffle = False
+    # else:
+    #   shuffle = dataset_key == "train"
+    # NEW PG SMAPLER:
+    sampler = DistributedSampler(dataset_src, rank=rank, num_replicas=world_size)
     # Creates dataloaders, which load data in batches
     loader = torch.utils.data.DataLoader(
         dataset=dataset_src,
         batch_size=flags.batch_size,
-        shuffle=shuffle,
+        # shuffle=shuffle,
         num_workers=flags.num_workers,
         drop_last=flags.drop_last,
-        pin_memory=True)
+        pin_memory=True,
+        sampler=sampler)
 
     return loader

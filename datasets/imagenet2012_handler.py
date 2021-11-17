@@ -75,7 +75,7 @@ def subset_path_df(path_df, params):
   
   return path_df
 
-def build_path_df(root, subdir='ImageNet2012/ILSVRC/Data/CLS-LOC/train'):
+def build_path_df(root, subdir='imagenet/train'):
   # Label handler
   label_handler = ImagenetLabels()
   
