@@ -85,6 +85,7 @@ class CascadedTrainingScheme(object):
     batch_losses = []
     batch_accs = []
     for batch_i, (data, targets) in enumerate(loader):
+      torch.autograd.set_detect_anomaly(True)
       if self.flags.debug and batch_i > 1:
         break
       # Send to device
