@@ -77,10 +77,11 @@ class ResNet(nn.Module):
     self.layer3 = self._make_layer(block, 256, layers[2], stride=2, **kwargs)
     self.layer4 = self._make_layer(block, 512, layers[3], stride=2, 
                                    final_layer=True, **kwargs)
-    self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
+    self.layers = nn.ModuleList([self.layer1, self.layer2, self.layer3, self.layer4])
     
     if self._multiple_fcs:
       fcs = []
+    
       for i in range(self.timesteps):
         fc_i = InternalClassifier(
           n_channels=512, 
@@ -97,9 +98,14 @@ class ResNet(nn.Module):
       )
     
     # Weight initialization
+    print("WEIGHTS")
     for m in self.modules():
       if isinstance(m, nn.Conv2d):
+        print(m) #PG_parallel debugging
+        print(m.weight.device)
         nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+        m.weight.to('cuda:0')
+        print(m.weight.device)
       elif isinstance(m, (self._norm_layer, nn.GroupNorm)):
         nn.init.constant_(m.weight, 1)
         nn.init.constant_(m.bias, 0)
@@ -129,7 +135,7 @@ class ResNet(nn.Module):
       downsample = nn.Sequential(
           custom_ops.conv1x1(self.inplanes, planes * block.expansion, stride),
       )
-    layers = []
+    layers = nn.ModuleList() #PG_parallel
     layers.append(
         block(
           self.res_layer_count,
@@ -262,7 +268,7 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
     
     # Load model
     model = ResNet(arch, block, layers, **kwargs)
-    model = nn.DataParallel(model)
+    model = nn.DataParallel(model, device_ids = [0,1]).cuda()  #PG_parallel
 
     # Load imagenet state dict
     state_dict = load_state_dict_from_url(_MODEL_URLS[arch])
@@ -304,8 +310,8 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
     model.module.fc = InternalClassifier(num_ftrs, num_classes)  # nn.Linear(num_ftrs, num_classes)
   else: 
     print("NOT USING PRETRAINED MODEL")
-    model = ResNet(arch, block, layers, **kwargs)
-    model = nn.DataParallel(model)
+    model = nn.DataParallel(ResNet(arch, block, layers, **kwargs), device_ids = [0,1]).cuda() #PG_parallel
+    
     if pretrained:
       model = model_utils.load_model(model, kwargs)
   
