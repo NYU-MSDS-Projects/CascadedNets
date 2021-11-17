@@ -229,7 +229,6 @@ def setup_dataset(args):
 
 
 def setup_model(data_handler, device, args, save_root=""):
-
   # Model
   model_dict = {
       "seed": args.random_seed,
@@ -263,17 +262,18 @@ def setup_model(data_handler, device, args, save_root=""):
   print("device count", torch.cuda.device_count())
   print("Instantiating model...")
 
-  print("DEVICE", device)
-  print(type(device))
-  
+  #dist.init_process_group("NCCL", rank = device, world_size = world_size)
   for k in model_init_op.__dict__.keys():
     print(k, model_init_op.__dict__[k])
   print("model_dict")
   for k in model_dict.keys():
     print(k, model_dict[k])
   net =model_init_op.__dict__[args.model_key](**model_dict).to(device)
-  print(type(net))
+  
   print("Model instantiated.")
+
+  for name, param in net.named_parameters():
+    print(name, param.device)
   
   # Compute inference costs if ic_only / SDN
   if args.train_mode in ["ic_only", "sdn"]:
@@ -391,17 +391,30 @@ def condition_model(save_root, args):
   return returns
 
 
-def train(device, world_size, save_root, args):
-  dist.init_process_group(                                   
-    	backend='nccl',                                         
-   		init_method='env://',                                   
-    	world_size=world_size,                              
-    	rank=device)
+def main(args):
+  os.environ['CUDA_VISIBLE_DEVICES']=args.device
+  # Make reproducible
+  utils.make_reproducible(args.random_seed)
+
+  # Set Device
+  gc.collect()
+  torch.cuda.empty_cache()
+  device = torch.device(
+    'cuda:0'
+    if torch.cuda.is_available() and not args.use_cpu
+    else "cpu"
+  )
+  print("DEVICE", device)
+
+  # Setup output directory
+  #save_root = setup_output_dir(args)
 
   # Setup dataset loader
   data_handler, loaders = setup_dataset(args)
-
-  net = setup_model(data_handler, device, world_size, args, save_root=save_root)
+  
+  # Setup model
+  save_root = ""
+  net = setup_model(data_handler, device, args, save_root=save_root)
 
   # Condition model and get handler opts
   opts = condition_model(save_root, args)
@@ -426,7 +439,6 @@ def train(device, world_size, save_root, args):
 
   # Criterion
   criterion = losses.categorical_cross_entropy
-
 
   # train and eval functions
   print("Setting up train and eval functions...")
@@ -458,10 +470,13 @@ def train(device, world_size, save_root, args):
   # Main training loop
   try:
     print("Training network...")
+    for name, param in net.named_parameters():
+        print(name, param.device)
     for epoch_i in range(args.n_epochs):
       print(f"\nEpoch {epoch_i+1}/{args.n_epochs}")
       # Train net
       start_time = time.time()
+
       train_loss, train_acc = train_fxn(
         net, 
         loaders["train"], 
@@ -538,32 +553,6 @@ def train(device, world_size, save_root, args):
   utils.save_model(net, optimizer, save_root, epoch_i, args.debug)
   utils.save_metrics(metrics, save_root, args.debug)
   print("Fin.")
-
-  
-def main(args):
-  # Make reproducible
-  utils.make_reproducible(args.random_seed)
-
-  # Set Device
-  #gc.collect()
-  #torch.cuda.empty_cache()
-  print("DEVICE_COUNT", torch.cuda.device_count())
-  device = torch.device(
-    "cuda"
-    #if torch.cuda.is_available() and not args.use_cpu
-    #else "cpu"
-  )
-  world_size = torch.cuda.device_count()
-  print("DEVICE", device)
-  print("WORLD_SIZE", world_size)
-  
-  # Setup model
-  save_root = ""
-  mp.spawn(train, nprocs = world_size, args = (save_root, args))
-
-  
-  
-  
   
 if __name__ == "__main__":
   args = setup_args()
