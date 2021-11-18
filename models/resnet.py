@@ -77,7 +77,7 @@ class ResNet(nn.Module):
     self.layer3 = self._make_layer(block, 256, layers[2], stride=2, **kwargs)
     self.layer4 = self._make_layer(block, 512, layers[3], stride=2, 
                                    final_layer=True, **kwargs)
-    self.layers = nn.ModuleList([self.layer1, self.layer2, self.layer3, self.layer4])
+    #self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
     
     if self._multiple_fcs:
       fcs = []
@@ -98,20 +98,17 @@ class ResNet(nn.Module):
       )
     
     # Weight initialization
-    print("WEIGHTS")
     for m in self.modules():
       if isinstance(m, nn.Conv2d):
-        print(m) #PG_parallel debugging
-        print(m.weight.device)
         nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
         m.weight.to('cuda:0')
-        print(m.weight.device)
       elif isinstance(m, (self._norm_layer, nn.GroupNorm)):
         nn.init.constant_(m.weight, 1)
         nn.init.constant_(m.bias, 0)
 
   def _setup_bn_op(self, **kwargs):
     if self._cascaded and self._time_bn:
+      print("BatchNorm OP: Temporal")
       self._norm_layer = custom_ops.BatchNorm2d
 
       # Setup batchnorm opts
@@ -119,6 +116,7 @@ class ResNet(nn.Module):
       self.bn_opts["n_timesteps"] = self.timesteps
       norm_layer_op = functools.partial(self._norm_layer, self.bn_opts)
     else:
+      print("BatchNorm OP: Standard")
       self._norm_layer = nn.BatchNorm2d
       norm_layer_op = self._norm_layer
 
@@ -185,7 +183,7 @@ class ResNet(nn.Module):
 
   def _set_time(self, t):
     self.layer0.set_time(t)
-    for layer in self.layers:
+    for layer in [self.layer1, self.layer2, self.layer3, self.layer4]:
       for block in layer:
         block.set_time(t)
   
@@ -241,7 +239,7 @@ class ResNet(nn.Module):
     out = self.layer0(x)
     
     # Res Layers
-    for layer in self.layers:
+    for layer in [self.layer1, self.layer2, self.layer3, self.layer4]:
       out = layer(out)
       
     # Final layer
@@ -273,8 +271,7 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
     # Load imagenet state dict
     state_dict = load_state_dict_from_url(_MODEL_URLS[arch])
     print("MODELS_URL", _MODEL_URLS[arch])
-    for k in state_dict.keys():
-      print(k, state_dict[k].size())
+    
     #for k in state_dict.keys():
     #  print(k, state_dict[k].size())
     # Adjust names from loaded state_dict to match our model
@@ -294,10 +291,10 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
         k = f"fc.{k}"
       
       # Inflate batch norm along time dimension if cascaded model
-      if kwargs["cascaded"] and "running_" in k:
+      if kwargs["cascaded"] and kwargs["bn_opts"]["temporal_stats"] and "running_" in k:
         v = v.unsqueeze(dim=0).repeat(model.module.timesteps, 1)
       new_dict[k] = v
-      print(k, new_dict[k].size())
+
       #if new_dict[k].size() != state_dict[k].size():
       #  print(k, new_dict[k].size(), state_dict[k].size())
     
