@@ -10,11 +10,11 @@ EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
 TRAIN_MODE="cascaded"  # baseline, cascaded
-CASCADED_SCHEME="parallel"  # serial, parallel
+CASCADED_SCHEME="serial"  # serial, parallel
 
 MULTIPLE_FCS=false
 
-LAMBDA_VALS=(0.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
+LAMBDA_VALS=(0.0 0.25 0.5 1.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
@@ -30,8 +30,8 @@ NESTEROV=true
 DEVICE='0,1'
 RANDOM_SEEDS=(42)  # To sweep, set as list. E.g., RANDOM_SEEDS=(42 542 1042)
 EPOCHS=120
-BATCH_SIZE=128  # 128
-NUM_WORKERS=8
+BATCH_SIZE=100  # 128
+NUM_WORKERS=16
 DEBUG=false
 
 for RANDOM_SEED in "${RANDOM_SEEDS[@]}"
