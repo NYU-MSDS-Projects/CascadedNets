@@ -9,12 +9,12 @@ DATASET_NAME="ImageNet2012"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
-TRAIN_MODE="baseline"  # baseline, cascaded
-CASCADED_SCHEME="parallel"  # serial, parallel
-
+TRAIN_MODE="cascaded"  # baseline, cascaded
+CASCADED_SCHEME="serial"  # serial, parallel
 MULTIPLE_FCS=false
+USE_PRETRAINED_IMAGENET_WEIGHTS=true
 
-LAMBDA_VALS=(0.0, 0.5, 1) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
+LAMBDA_VALS=(0.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
@@ -27,11 +27,11 @@ MOMENTUM=0.9
 NESTEROV=true
 
 # General / Dataset / Train params
-DEVICE='0,1' #PG_parallel
+DEVICE='0,1'
 RANDOM_SEEDS=(42)  # To sweep, set as list. E.g., RANDOM_SEEDS=(42 542 1042)
-EPOCHS=120
+EPOCHS=100
 BATCH_SIZE=128  # 128
-NUM_WORKERS=16
+NUM_WORKERS=20
 DEBUG=false
 
 for RANDOM_SEED in "${RANDOM_SEEDS[@]}"
@@ -60,6 +60,7 @@ do
       ${NESTEROV} && cmd+=( --nesterov )
       ${TAU_WEIGHTED_LOSS} && cmd+=( --tau_weighted_loss )
       ${PRETRAINED_WEIGHTS} && cmd+=( --use_pretrained_weights )
+      ${USE_PRETRAINED_IMAGENET_WEIGHTS} && cmd+=( --use_imagenet_pretrained_weights )
       ${MULTIPLE_FCS} && cmd+=( --multiple_fcs )
       ${USE_ALL_ICS} && cmd+=( --use_all_ICs )
       ${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
