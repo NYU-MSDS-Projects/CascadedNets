@@ -77,7 +77,7 @@ class ResNet(nn.Module):
     self.layer3 = self._make_layer(block, 256, layers[2], stride=2, **kwargs)
     self.layer4 = self._make_layer(block, 512, layers[3], stride=2, 
                                    final_layer=True, **kwargs)
-    self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
+    self.layers = nn.ModuleList([self.layer1, self.layer2, self.layer3, self.layer4])
     
     if self._multiple_fcs:
       fcs = []
@@ -99,7 +99,10 @@ class ResNet(nn.Module):
     # Weight initialization
     for m in self.modules():
       if isinstance(m, nn.Conv2d):
-        nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+        print(m.weight.device)
+        nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu").to('cuda')
+        m.weight.to('cuda:0')
+        print(m.weight.device)
       elif isinstance(m, (self._norm_layer, nn.GroupNorm)):
         nn.init.constant_(m.weight, 1)
         nn.init.constant_(m.bias, 0)
@@ -129,7 +132,7 @@ class ResNet(nn.Module):
       downsample = nn.Sequential(
           custom_ops.conv1x1(self.inplanes, planes * block.expansion, stride),
       )
-    layers = []
+    layers = nn.ModuleList()
     layers.append(
         block(
           self.res_layer_count,
@@ -262,7 +265,7 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
     
     # Load model
     model = ResNet(arch, block, layers, **kwargs)
-    model = nn.DataParallel(model)
+    model = nn.DataParallel(model, device_ids = [0,1]).cuda()
 
     # Load imagenet state dict
     state_dict = load_state_dict_from_url(_MODEL_URLS[arch])
@@ -305,7 +308,7 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
   else: 
     print("NOT USING PRETRAINED MODEL")
     model = ResNet(arch, block, layers, **kwargs)
-    model = nn.DataParallel(model)
+    model = nn.DataParallel(model, device_ids = [0,1]).cuda()
     if pretrained:
       model = model_utils.load_model(model, kwargs)
   

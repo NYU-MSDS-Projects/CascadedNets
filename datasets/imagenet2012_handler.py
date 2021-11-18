@@ -94,7 +94,6 @@ def build_path_df(root, experiment_root, subdir='train'):
   print(label_handler.train_classes)
   for class_dir in class_dirs:
     class_id = class_dir[str.find(class_dir, "/n")+1:]
-    print(class_id)
     if class_id in(label_handler.train_classes):
       #class_id = os.path.basename(class_dir)
       class_lbl = label_handler.lookup_lbl(class_id)
