@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict, Counter
 from PIL import Image
-from datasets.Imagenet16ClassLabels import Imagenet16Labels
+from datasets.ImagenetClassLabels import ImagenetLabels
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as T
 import time
@@ -80,9 +80,9 @@ def subset_path_df(path_df, params):
   print(f"PATH DF SIZE AFTER SUBSET FUNCTION CALL: {len(path_df)}")
   return path_df
 
-def build_path_df(root, experiment_root, subdir='train'):
+def build_path_df(root, subdir='imagenet/train'):
   # Label handler
-  label_handler = Imagenet16Labels(experiment_root)
+  label_handler = ImagenetLabels()
   
   # Set path
   dataset_path = os.path.join(root, subdir)
@@ -192,7 +192,7 @@ class ImagenetDataset(Dataset):
 def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_root):
   # Label handler
   print(f"CREATE_DATASETS PATH_DF: {len(path_df)}")
-  label_handler = Imagenet16Labels(experiment_root)
+  label_handler = ImagenetLabels(experiment_root)
 
   # Make sure split idx root exists
   if not os.path.exists(split_idxs_root):

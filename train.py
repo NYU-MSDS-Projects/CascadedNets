@@ -43,7 +43,7 @@ def setup_args():
   parser.add_argument("--split_idxs_root", type=str, default="split_idxs",
                       help="Split idxs root")
   parser.add_argument("--labels_root", type=str, default='labels_root',
-                      help="root for 16 imagenet labels")
+                      help="root for imagenet labels")
   parser.add_argument("--val_split", type=float, default=0.1,
                       help="Validation set split: 0.1 default")
   parser.add_argument("--test_split", type=float, default=0.1,
