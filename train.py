@@ -323,7 +323,7 @@ def condition_model(save_root, args):
   # Check mode and load optimizer
   if (args.train_mode == "ic_only" 
       or (args.train_mode in ["sdn", "cascaded"] and args.use_pretrained_weights)):
-    if not args.use_pretrained_weights:
+    if not args.use_pretrained_weights and args.train_mode not in ['cascaded']:
       baseline_ckpt_path = get_baseline_ckpt_path(save_root, args)
       assert os.path.exists(baseline_ckpt_path), (
         f"Path does not exist: {baseline_ckpt_path}")
@@ -407,13 +407,13 @@ def main(args):
   print("DEVICE", device)
 
   # Setup output directory
-  #save_root = setup_output_dir(args)
+  save_root = setup_output_dir(args)
 
   # Setup dataset loader
   data_handler, loaders = setup_dataset(args)
   
   # Setup model
-  save_root = ""
+  #save_root = ""
   net = setup_model(data_handler, device, args, save_root=save_root)
 
   # Condition model and get handler opts
@@ -470,8 +470,8 @@ def main(args):
   # Main training loop
   try:
     print("Training network...")
-    for name, param in net.named_parameters():
-        print(name, param.device)
+    #for name, param in net.named_parameters():
+    #    print(name, param.device)
     for epoch_i in range(args.n_epochs):
       print(f"\nEpoch {epoch_i+1}/{args.n_epochs}")
       # Train net
