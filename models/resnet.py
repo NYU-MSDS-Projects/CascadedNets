@@ -53,6 +53,7 @@ class ResNet(nn.Module):
       self._time_bn = False
     else:
       self._time_bn = kwargs["bn_opts"]["temporal_stats"]
+      print("self._time_bn", self._time_bn)
     
     # Set up batch norm operation
     self._norm_layer_op = self._setup_bn_op(**kwargs)
@@ -77,7 +78,7 @@ class ResNet(nn.Module):
     self.layer3 = self._make_layer(block, 256, layers[2], stride=2, **kwargs)
     self.layer4 = self._make_layer(block, 512, layers[3], stride=2, 
                                    final_layer=True, **kwargs)
-    #self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
+    self.layers = [self.layer1, self.layer2, self.layer3, self.layer4]
     
     if self._multiple_fcs:
       fcs = []
@@ -182,7 +183,7 @@ class ResNet(nn.Module):
 
   def _set_time(self, t):
     self.layer0.set_time(t)
-    for layer in [self.layer1, self.layer2, self.layer3, self.layer4]:
+    for layer in self.layers:
       for block in layer:
         block.set_time(t)
   
@@ -238,7 +239,7 @@ class ResNet(nn.Module):
     out = self.layer0(x)
     
     # Res Layers
-    for layer in [self.layer1, self.layer2, self.layer3, self.layer4]:
+    for layer in self.layers:
       out = layer(out)
       
     # Final layer
@@ -293,7 +294,7 @@ def make_resnet(arch, block, layers, pretrained, **kwargs):
       
       # Inflate batch norm along time dimension if cascaded model
       if kwargs["cascaded"] and "running_" in k:
-        v = v.unsqueeze(dim=0).repeat(model.module.timesteps, 1)
+        v = v.unsqueeze(dim=0).repeat(model.timesteps, 1)
       new_dict[k] = v
       #print(k, new_dict[k].size())
       #if new_dict[k].size() != state_dict[k].size():
