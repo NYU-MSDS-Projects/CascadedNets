@@ -21,6 +21,7 @@ class SequentialTrainingScheme:
     batch_losses = []
     batch_accs = []
     for batch_i, (data, targets) in enumerate(loader):
+      print("data device", data.device)
       if self.flags.debug and batch_i > 1:
         break
       # One-hot-ify targets
@@ -28,7 +29,7 @@ class SequentialTrainingScheme:
 
       # Determine device placement
       data = data.to(device, non_blocking=True)
-
+      print("data device", data.device)
       # Zero gradients
       optimizer.zero_grad()
 
@@ -90,18 +91,23 @@ class CascadedTrainingScheme(object):
       # Send to device
       data = data.to(device)
       targets = targets.to(device)
-
       # Zero out grads
       optimizer.zero_grad()
       
       predicted_logits = []
+      print(f"number of timesteps: {self.n_timesteps}")
       for t in range(self.n_timesteps):
+        #rint(f"timestep {t}")
+        #print("MEMORY SUMMARY", torch.cuda.memory_summary(device=0, abbreviated=False))
         # Run forward pass
-        logit_t = net(data, t)
-        predicted_logits.append(logit_t)
+        #for name, param in net.named_parameters():
+        #  print(name, param.size())
+        #logit_t = net(data, t)
+        predicted_logits.append(net(data, t))
 
+      
       # One-hot-ify targets and send to output device
-      targets = targets.to(logit_t.device, non_blocking=True)
+      targets = targets.to(net(data, t).device, non_blocking=True)
       y = torch.eye(self.num_classes)[targets]
       y = y.to(targets.device, non_blocking=True)
       
@@ -110,15 +116,16 @@ class CascadedTrainingScheme(object):
       timestep_accs = torch.zeros(self.n_timesteps)
 
       for t in range(len(predicted_logits)):
-        logit_i = predicted_logits[t]
+        #logit_i = predicted_logits[t]
 
         # First term
-        sum_term = torch.zeros_like(logit_i)
+        sum_term = torch.zeros_like(predicted_logits[t])
         t_timesteps = list(range(t+1, self.n_timesteps))
         for i, n in enumerate(t_timesteps, 1):
           logit_k = predicted_logits[n].detach().clone()
           softmax_i = F.softmax(logit_k, dim=1)
           sum_term = sum_term + self.flags.lambda_val**(i - 1) * softmax_i
+          del logit_k
 
         # Final terms
         term_1 = (1 - self.flags.lambda_val) * sum_term
@@ -126,7 +133,7 @@ class CascadedTrainingScheme(object):
         softmax_j = term_1 + term_2
 
         # Compute loss
-        loss_i = criterion(pred_logits=logit_i, y_true_softmax=softmax_j)
+        loss_i = criterion(pred_logits=predicted_logits[t], y_true_softmax=softmax_j)
         
         # Tau weighted
         if self.flags.tau_weighted_loss and t < self.n_timesteps - 1:
@@ -145,7 +152,7 @@ class CascadedTrainingScheme(object):
         timestep_losses[t] = loss_i.item()
 
         # Predictions
-        softmax_i = F.softmax(logit_i, dim=1)
+        softmax_i = F.softmax(predicted_logits[t], dim=1)
         y_pred = torch.argmax(softmax_i, dim=1)
 
         # Updates running accuracy statistics
