@@ -120,7 +120,7 @@ def setup_args():
   # Other
   parser.add_argument("--use_cpu", action="store_true", default=False,
                       help="Use cpu")
-  parser.add_argument("--device", type=str, default='0',
+  parser.add_argument("--device", type=int, default=0,
                       help="GPU device num")
   parser.add_argument("--n_epochs", type=int, default=150,
                       help="Number of epochs to train")
@@ -211,8 +211,9 @@ def setup_dataset(args):
       "noise_type": args.augmentation_noise_type,
       "load_previous_splits": True,
       "imagenet_params": {
-        #"target_classes": [],
-        "max_classes": 1000,
+        "target_classes": ['airplane', 'bicycle', 'boat', 'car', 'chair', 'dog', 'keyboard', 'oven',
+                           'bear', 'bird', 'bottle', 'cat', 'clock', 'elephant', 'knife', 'truck'],
+        "max_classes": 16,
       }
   }
   data_handler = DataHandler(**data_dict)
@@ -246,7 +247,7 @@ def setup_model(data_handler, device, args, save_root=""):
           "temporal_affine": args.bn_time_affine,
           "temporal_stats": args.bn_time_stats,
       },
-      "imagenet": args.dataset_name == "ImageNet2012",
+      "imagenet": args.dataset_name == "ImageNet2012_16classes",
       "imagenet_pretrained": args.dataset_name == "ImageNet2012" and args.use_pretrained_weights,
       "n_channels": 1 if args.dataset_name == "FashionMNIST" else 3
   }
@@ -392,7 +393,7 @@ def condition_model(save_root, args):
 
 
 def main(args):
-  os.environ['CUDA_VISIBLE_DEVICES']=args.device
+  #os.environ['CUDA_VISIBLE_DEVICES']=args.device
   # Make reproducible
   utils.make_reproducible(args.random_seed)
 
@@ -400,7 +401,7 @@ def main(args):
   gc.collect()
   torch.cuda.empty_cache()
   device = torch.device(
-    'cuda:0'
+  args.device
     if torch.cuda.is_available() and not args.use_cpu
     else "cpu"
   )
@@ -442,7 +443,11 @@ def main(args):
 
   # train and eval functions
   print("Setting up train and eval functions...")
+  print("data handler num_classes: ", data_handler.num_classes)
+  print("MEMORY SUMMARY")
+  print(torch.cuda.memory_summary(device=None, abbreviated=False))
   train_fxn = train_handler.get_train_loop(
+    #net.module.timesteps,
     net.module.timesteps,
     data_handler.num_classes,
     args,
@@ -450,6 +455,7 @@ def main(args):
   )
   
   eval_fxn = eval_handler.get_eval_loop(
+    #net.module.timesteps,
     net.module.timesteps,
     data_handler.num_classes,
     cascaded=args.cascaded,
