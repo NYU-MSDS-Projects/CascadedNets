@@ -20,30 +20,30 @@ def split_dataset(path_df, val_split=0.1, test_split=0.1, split_idxs_root=""):
     
   basename = f"{val_split}-{test_split}_val_test_split.json"
   split_path = os.path.join(split_idxs_root, basename)
-  if os.path.exists(split_path):
-    print(f"Loading splic locs from {split_path}...")
-    with open(split_path, "r") as infile:
-      split_locs = json.load(infile)
-  else:
-    split_locs = defaultdict(list)
-    for class_lbl, class_df in path_df.groupby("class_lbl"):
-      n_samples = len(class_df)
-      n_test = int(n_samples * test_split)
-      n_dev = n_samples - n_test
-      n_val = int(n_dev * val_split)
+  #if os.path.exists(split_path):
+  #  print(f"Loading splic locs from {split_path}...")
+  #  with open(split_path, "r") as infile:
+  #    split_locs = json.load(infile)
+  #else:
+  split_locs = defaultdict(list)
+  for class_lbl, class_df in path_df.groupby("class_lbl"):
+    n_samples = len(class_df)
+    n_test = int(n_samples * test_split)
+    n_dev = n_samples - n_test
+    n_val = int(n_dev * val_split)
 
-      test_locs = list(class_df.iloc[:n_test].index)
-      val_locs = list(class_df.iloc[n_test:n_test+n_val].index)
-      train_locs = list(class_df.iloc[n_test+n_val:].index)
+    test_locs = list(class_df.iloc[:n_test].index)
+    val_locs = list(class_df.iloc[n_test:n_test+n_val].index)
+    train_locs = list(class_df.iloc[n_test+n_val:].index)
 
-      split_locs["test"] += test_locs
-      split_locs["val"] += val_locs
-      split_locs["train"] += train_locs
-      
-    # Save
-    print(f"Saving split locs to {split_path}...")
-    with open(split_path, "w") as outfile:
-      json.dump(split_locs, outfile)
+    split_locs["test"] += test_locs
+    split_locs["val"] += val_locs
+    split_locs["train"] += train_locs
+    
+  # Save
+  print(f"Saving split locs to {split_path}...")
+  with open(split_path, "w") as outfile:
+    json.dump(split_locs, outfile)
   return split_locs
 
 
@@ -144,7 +144,7 @@ class EnforceShape:
 
 
 class ImagenetDataset(Dataset):
-  def __init__(self, path_df, dataset_key):
+  def __init__(self, path_df, dataset_key, grayscale): #pg_grayscale
     self.path_df = path_df
     self.dataset_key = dataset_key
 
@@ -160,6 +160,8 @@ class ImagenetDataset(Dataset):
     else:
       xform_list = [T.Resize(256), T.CenterCrop(224)]
 
+    if self.grayscale: #pg_grayscale
+      xform_list.append(T.Grayscale(num_output_channels=3)) #pg_grayscale
     xform_list += [
         T.ToTensor(),
         EnforceShape(),
@@ -195,7 +197,7 @@ def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_
   # Label handler
   print(f"CREATE_DATASETS PATH_DF: {len(path_df)}")
   label_handler = Imagenet16Labels(experiment_root)
-
+  print(path_df['y'].value_counts())
   # Make sure split idx root exists
   if not os.path.exists(split_idxs_root):
     print(f"Creating {split_idxs_root}...")
