@@ -267,14 +267,15 @@ def main(args):
     data_dict = {
         "dataset_name": loaded_args.dataset_name,
         "data_root": args.dataset_root,
+        "experiment_root" : args.experiment_root,
         "val_split": loaded_args.val_split,
         "split_idxs_root": args.split_idxs_root,
         "noise_type": loaded_args.augmentation_noise_type,
         "load_previous_splits": True,
         "verbose": False,
         "imagenet_params": {
-          "target_classes": ["terrier"],
-          "max_classes": 10,
+          #"target_classes": ["terrier"],
+          "max_classes": 1000,
         }
     }
     data_handler = DataHandler(**data_dict)
@@ -321,9 +322,13 @@ def main(args):
 
     # Initialize net
     print("Instantiating model...")
-    net = model_init_op.__dict__[args.model_key](**model_dict).to(args.device)
+    try:
+      net = model_init_op.__dict__[args.model_key](**model_dict).to(args.device)
+    except:
+      print(f"unable to load model from {exp_path} successfully")
+      continue
     
-    if args.train_mode in ["ic_only", "sdn", "cascaded"]:
+    if args.train_mode in ["ic_only", "sdn"]:
       all_flops, normed_flops = sdn_utils.compute_inference_costs(
           data_handler, model_dict, args)
       net.set_target_inference_costs(normed_flops, 
@@ -354,7 +359,7 @@ def main(args):
     if args.n_timesteps is not None:
       n_timesteps = args.n_timesteps
     else:
-      n_timesteps = net.timesteps
+      n_timesteps = net.module.timesteps
     
     eval_fxn = eval_handler.get_eval_loop(
       n_timesteps,
