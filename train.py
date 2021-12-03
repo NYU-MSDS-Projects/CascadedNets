@@ -96,6 +96,8 @@ def setup_args():
                       help="Use all internal classifiers")
   parser.add_argument("--multiple_fcs", action="store_true", default=False,
                       help="One FC per timestep")
+  parser.add_argument("--grayscale", action="store_true", default=False,
+                      help="Transform images to grayscale")
   
   
   # Optimizer
@@ -205,6 +207,7 @@ def setup_dataset(args):
       "dataset_name": args.dataset_name,
       "data_root": args.dataset_root,
       "experiment_root": args.experiment_root, 
+      "grayscale": args.grayscale,#pg_grayscale
       "val_split": args.val_split,
       "test_split": args.test_split,
       "split_idxs_root": args.split_idxs_root,
@@ -278,6 +281,7 @@ def setup_model(data_handler, device, args, save_root=""):
   
   # Compute inference costs if ic_only / SDN
   if args.train_mode in ["ic_only", "sdn"]:
+    print("COMPUTING INFERENCE COSTS")
     all_flops, normed_flops = sdn_utils.compute_inference_costs(
       data_handler, 
       model_dict, 
