@@ -1,12 +1,12 @@
 #!/bin/bash
 
-DATASET_ROOT="/hdd/mliuzzolino/datasets"  # Specify location of datasets
-EXPERIMENT_ROOT="/hdd/mliuzzolino/cascaded_nets"  # Specify experiment root
-SPLIT_IDXS_ROOT="/hdd/mliuzzolino/split_idxs"  # Specify root of dataset split_idxs
+DATASET_ROOT="/scratch/work/public/imagenet"  # Specify location of datasets
+EXPERIMENT_ROOT="../cascade_output/experiments"  # Specify experiment root
+SPLIT_IDXS_ROOT="../cascade_output/split_idx"  # Specify root of dataset split_idxs
 
 # Experiment name to evaluate
 MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
-DATASET_NAME="ImageNet2012"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
+DATASET_NAME="ImageNet2012_16classes"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 TRAIN_MODE="cascaded"  # baseline, cascaded_seq, cascaded
@@ -21,11 +21,11 @@ N_TIMESTEPS=70  # Used for EWS kernel only
 
 DEVICE=0
 KEEP_LOGITS=true
-KEEP_EMBEDDINGS=true
+KEEP_EMBEDDINGS=false
 FORCE_OVERWRITE=true
 DEBUG=false
 
-cmd=( python eval.py )   # create array with one element
+cmd=( python ../CascadedNets/eval.py )   # create array with one element
 cmd+=( --device $DEVICE )
 cmd+=( --dataset_root $DATASET_ROOT )
 cmd+=( --dataset_name $DATASET_NAME )
