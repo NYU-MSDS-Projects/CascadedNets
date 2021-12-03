@@ -10,14 +10,17 @@ EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
 TRAIN_MODE="cascaded"  # baseline, cascaded
-CASCADED_SCHEME="serial"  # serial, parallel
+CASCADED_SCHEME="parallel"  # serial, parallel
 
 MULTIPLE_FCS=false
 
-LAMBDA_VALS=0.5 # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
+LAMBDA_VALS=0.0 # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
+
+#transforms
+GRAYSCALE=true #pg_grayscale
 
 # Optimizer / LR Scheduling
 LR_MILESTONES=(30 60 90)
@@ -62,6 +65,7 @@ do
       ${PRETRAINED_WEIGHTS} && cmd+=( --use_pretrained_weights )
       ${MULTIPLE_FCS} && cmd+=( --multiple_fcs )
       ${USE_ALL_ICS} && cmd+=( --use_all_ICs )
+      ${GRAYSCALE} && cmd+=( --grayscale ) #pg_grayscale
       ${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
 
       # Run command
