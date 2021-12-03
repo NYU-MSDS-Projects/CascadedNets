@@ -14,6 +14,7 @@ class DataHandler:
       dataset_name,
       data_root,
       experiment_root,
+      grayscale, #pg_grayscale
       val_split=0.1,
       test_split=0.1,
       split_idxs_root="split_idxs",
@@ -31,6 +32,7 @@ class DataHandler:
     self.noise_type = noise_type
     self._verbose = verbose
     self.load_previous_splits = load_previous_splits
+    self.grayscale = grayscale #pg_grayscale
     self._kwargs = kwargs
     
     self._set_num_classes(dataset_name)
@@ -127,6 +129,7 @@ class DataHandler:
       # Build path dataframe
       print("EXPERIMENT_ROOT", self.experiment_root)
       path_df = imagenet2012_handler.build_path_df(self.data_root, self.experiment_root)
+      
       assert len(path_df), "Failed to load path df"
       
       print(f"size of path_df: {len(path_df)}")
@@ -147,7 +150,8 @@ class DataHandler:
         self.val_split, 
         self.test_split,
         self.split_idxs_root,
-        self.experiment_root
+        self.experiment_root,
+        self.grayscale #pg_grayscale
       )
     
     return dataset_dict
@@ -159,10 +163,9 @@ class DataHandler:
       dont_shuffle_train=False
     ):
     """Build dataset loader."""
-
     # Get dataset source
     dataset_src = self.datasets[dataset_key]
-
+    print("DATASET_SRC", dataset_src)
     # Specify shuffling
     if dont_shuffle_train:
       shuffle = False
@@ -177,5 +180,5 @@ class DataHandler:
         num_workers=flags.num_workers,
         drop_last=flags.drop_last,
         pin_memory=True)
-
+    
     return loader
