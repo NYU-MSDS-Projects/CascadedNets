@@ -147,6 +147,7 @@ class ImagenetDataset(Dataset):
   def __init__(self, path_df, dataset_key, grayscale): #pg_grayscale
     self.path_df = path_df
     self.dataset_key = dataset_key
+    self.grayscale = grayscale
 
     # Setup transforms and paths
     self._setup_transforms()
@@ -193,7 +194,7 @@ class ImagenetDataset(Dataset):
     return img, y  #, label
 
 
-def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_root):
+def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_root, grayscale): #pg_grayscale
   # Label handler
   print(f"CREATE_DATASETS PATH_DF: {len(path_df)}")
   label_handler = Imagenet16Labels(experiment_root)
@@ -209,19 +210,19 @@ def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_
   # Train
   print("Loading train data...")
   train_df = path_df.loc[split_locs["train"]]
-  train_dataset = ImagenetDataset(train_df, 'train')
+  train_dataset = ImagenetDataset(train_df, 'train', grayscale) #pg_grayscale
   print(f"{len(train_dataset):,} train examples loaded.")
 
   # Validation
   print("Loading validation data...")
   val_df = path_df.loc[split_locs["val"]]
-  val_dataset = ImagenetDataset(val_df, 'val')
+  val_dataset = ImagenetDataset(val_df, 'val',grayscale) #pg_grayscale
   print(f"{len(val_dataset):,} train examples loaded.")
 
   # Test
   print("Loading test data...")
   test_df = path_df.loc[split_locs["test"]]
-  test_dataset = ImagenetDataset(test_df, 'test')
+  test_dataset = ImagenetDataset(test_df, 'test',grayscale) #pg_grayscale
   print(f"{len(test_dataset):,} test examples loaded.")
 
   # Package
