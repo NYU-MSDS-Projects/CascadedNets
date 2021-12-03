@@ -28,13 +28,12 @@ class Imagenet16Labels:
         class_name = file[:-4]
         df = pd.read_csv(os.path.join(self.experiment_root,'image_names', file), names = ['full_file'])
         df['prefix'] = df['full_file'].apply(lambda x: x[:str.find(x,"_")]) 
-        print("class", class_name)
 
         class_files = list(df['prefix'].unique())
-        self.label_to_cls[class_name] = class_files
-        print(class_files)
+        #self.label_to_cls[class_name] = class_files
         for n_file in class_files:
             self.cls_to_label[n_file] =  class_name
+            self.label_to_cls[class_name] = n_file
             self.train_classes.append(n_file)
 
     #data = {int(key): val for key, val in data.items()}
@@ -48,6 +47,7 @@ class Imagenet16Labels:
     #self.label_to_cls = {val: key for key, val in self.cls_to_label.items()}
 
     self.num_classes = 16
+    del df
     print("number of classes", self.num_classes)
     print("Fin.")
   
