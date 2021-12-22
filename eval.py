@@ -88,6 +88,8 @@ def setup_args():
   parser.add_argument("--target_IC_inference_costs", nargs="+", type=float, 
                       default=[0.15, 0.30, 0.45, 0.60, 0.75, 0.90],
                       help="target_IC_inference_costs")
+  parser.add_argument("--grayscale", action="store_true", default=False,
+                      help="Transform images to grayscale")
   
   
   # Optimizer
@@ -268,6 +270,7 @@ def main(args):
         "dataset_name": loaded_args.dataset_name,
         "data_root": args.dataset_root,
         "experiment_root" : args.experiment_root,
+        "grayscale": args.grayscale,#pg_grayscale
         "val_split": loaded_args.val_split,
         "split_idxs_root": args.split_idxs_root,
         "noise_type": loaded_args.augmentation_noise_type,

@@ -9,8 +9,8 @@ MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
 DATASET_NAME="ImageNet2012_16classes"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
-TRAIN_MODE="cascaded"  # baseline, cascaded_seq, cascaded
-CASCADED_SCHEME="parallel"  # parallel, serial (used for train_mode=cascaded_seq)
+TRAIN_MODE="cascaded_seq"  # baseline, cascaded_seq, cascaded
+CASCADED_SCHEME="serial"  # parallel, serial (used for train_mode=cascaded_seq)
 DATASET_KEY="val"  # used for train_mode=cascaded_seq
 BATCH_SIZE=128
 
@@ -18,6 +18,9 @@ TDL_MODE="OSD"  # OSD, EWS, noise
 TDL_ALPHA=0.9
 NOISE_VAR=0.0  # Used for noise kernel only
 N_TIMESTEPS=70  # Used for EWS kernel only
+
+#transforms
+GRAYSCALE=true #pg_grayscale
 
 DEVICE=0
 KEEP_LOGITS=true
@@ -44,6 +47,7 @@ cmd+=( --n_timesteps $N_TIMESTEPS )
 ${KEEP_LOGITS} && cmd+=( --keep_logits )
 ${KEEP_EMBEDDINGS} && cmd+=( --keep_embeddings )
 ${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
+${GRAYSCALE} && cmd+=( --grayscale ) #pg_grayscale
 ${FORCE_OVERWRITE} && cmd+=( --force_overwrite ) && echo "FORCE OVERWRITE"
 
 # Run command
