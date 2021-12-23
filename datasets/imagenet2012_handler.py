@@ -8,7 +8,9 @@ from PIL import Image
 from datasets.Imagenet16ClassLabels import Imagenet16Labels
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as T
+import torch
 import time
+
 
 _MEAN = (0.485, 0.456, 0.406)
 _STD = (0.229, 0.224, 0.225)
@@ -142,12 +144,59 @@ class EnforceShape:
       x = x[:3]
     return x
 
+#Add gaussian noise class (from MSDNet)
+class AddGaussianNoise(object):
+    """
+    Author: Omkar Kumbhar
+    Description:
+    Adding gaussian noise to images in the batch
+    """
+    def __init__(self, mean=0., std=1., contrast=0.1):
+        self.std = std
+        self.mean = mean
+        self.contrast = contrast
+
+    def __call__(self, tensor):
+        noise = torch.Tensor()
+        n = tensor.size(1) * tensor.size(2)
+        sd2 = self.std * 2
+
+        while len(noise) < n:
+            # more samples than we require
+            m = 2 * (n - len(noise))
+            new = torch.randn(m) * self.std
+
+            # remove out-of-range samples
+            new = new[new >= -sd2]
+            new = new[new <= sd2]
+
+            # append to noise tensor
+            noise = torch.cat([noise, new])
+        
+        # pick first n samples and reshape to 2D
+        noise = torch.reshape(noise[:n], (tensor.size(1), tensor.size(2)))
+
+        # stack noise and translate by mean to produce std + 
+        newnoise = torch.stack([noise, noise, noise]) + self.mean
+
+        # shift image hist to mean = 0.5
+        tensor = tensor + (0.5 - tensor.mean())
+
+        # self.contrast = 1.0 / (5. * max(1.0, tensor.max() + sd2, 1.0 + (0 - tensor.min() - sd2)))
+        # print(self.contrast)
+
+        tensor = transforms.functional.adjust_contrast(tensor, self.contrast)
+        
+        return tensor + newnoise + self.mean
+
 
 class ImagenetDataset(Dataset):
-  def __init__(self, path_df, dataset_key, grayscale): #pg_grayscale
+  def __init__(self, path_df, dataset_key, grayscale, gauss_noise, gauss_noise_std): #pg_grayscale
     self.path_df = path_df
     self.dataset_key = dataset_key
     self.grayscale = grayscale
+    self.gauss_noise = gauss_noise
+    self.gauss_noise_std = gauss_noise_std
 
     # Setup transforms and paths
     self._setup_transforms()
@@ -161,8 +210,16 @@ class ImagenetDataset(Dataset):
     else:
       xform_list = [T.Resize(256), T.CenterCrop(224)]
 
+    #Add in grayscale, noise and blur handling if necessary
     if self.grayscale: #pg_grayscale
       xform_list.append(T.Grayscale(num_output_channels=3)) #pg_grayscale
+    
+    if self.gauss_noise: #pg_grayscale
+      if not self.grayscale:
+        xform_list.append(T.Grayscale(num_output_channels=3)) 
+      xform_list.append(T.ToTensor())
+      xform_list.append(AddGaussianNoise(0.,self.gauss_noise_std))
+
     xform_list += [
         T.ToTensor(),
         EnforceShape(),
@@ -194,7 +251,7 @@ class ImagenetDataset(Dataset):
     return img, y  #, label
 
 
-def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_root, grayscale): #pg_grayscale
+def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_root, grayscale, gauss_noise, gauss_noise_std): #pg_grayscale
   # Label handler
   print(f"CREATE_DATASETS PATH_DF: {len(path_df)}")
   label_handler = Imagenet16Labels(experiment_root)
@@ -210,19 +267,19 @@ def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_
   # Train
   print("Loading train data...")
   train_df = path_df.loc[split_locs["train"]]
-  train_dataset = ImagenetDataset(train_df, 'train', grayscale) #pg_grayscale
+  train_dataset = ImagenetDataset(train_df, 'train', grayscale, gauss_noise, gauss_noise_std) #pg_grayscale
   print(f"{len(train_dataset):,} train examples loaded.")
 
   # Validation
   print("Loading validation data...")
   val_df = path_df.loc[split_locs["val"]]
-  val_dataset = ImagenetDataset(val_df, 'val',grayscale) #pg_grayscale
+  val_dataset = ImagenetDataset(val_df, 'val',grayscale,gauss_noise, gauss_noise_std) #pg_grayscale
   print(f"{len(val_dataset):,} train examples loaded.")
 
   # Test
   print("Loading test data...")
   test_df = path_df.loc[split_locs["test"]]
-  test_dataset = ImagenetDataset(test_df, 'test',grayscale) #pg_grayscale
+  test_dataset = ImagenetDataset(test_df, 'test',grayscale, gauss_noise, gauss_noise_std) #pg_grayscale
   print(f"{len(test_dataset):,} test examples loaded.")
 
   # Package
