@@ -98,7 +98,10 @@ def setup_args():
                       help="One FC per timestep")
   parser.add_argument("--grayscale", action="store_true", default=False,
                       help="Transform images to grayscale")
-  
+  parser.add_argument("--gauss_noise", action="store_true", default=False,
+                      help="Add gaussian noise to images for training and testing")
+  parser.add_argument("--gauss_noise_std", action="store_true", default=0.0,
+                      help="Standard deviation of gaussian noise to apply when args.gauss_noise = true")
   
   # Optimizer
   parser.add_argument("--learning_rate", type=float, default=0.1,
@@ -183,6 +186,13 @@ def setup_output_dir(args, save_args_to_root=True):
     
   if args.tau_weighted_loss:
     out_basename += ",tau_weighted"
+  
+  if args.grayscale:
+    out_basename += ",grayscale"
+  
+  if args.gauss_noise:
+    out_basename += f",gauss_noise_{args.gauss_noise_std}"
+  
     
   save_root = os.path.join(
     args.experiment_root,
@@ -208,6 +218,8 @@ def setup_dataset(args):
       "data_root": args.dataset_root,
       "experiment_root": args.experiment_root, 
       "grayscale": args.grayscale,#pg_grayscale
+      "gauss_noise": args.gauss_noise,
+      "gauss_noise_std": args.gauss_noise_std,
       "val_split": args.val_split,
       "test_split": args.test_split,
       "split_idxs_root": args.split_idxs_root,

@@ -14,7 +14,9 @@ class DataHandler:
       dataset_name,
       data_root,
       experiment_root,
-      grayscale, #pg_grayscale
+      grayscale,
+      gauss_noise,
+      gauss_noise_std,
       val_split=0.1,
       test_split=0.1,
       split_idxs_root="split_idxs",
@@ -33,6 +35,8 @@ class DataHandler:
     self._verbose = verbose
     self.load_previous_splits = load_previous_splits
     self.grayscale = grayscale #pg_grayscale
+    self.gauss_noise = gauss_noise
+    self.gauss_noise_std = gauss_noise_std
     self._kwargs = kwargs
     
     self._set_num_classes(dataset_name)
@@ -151,7 +155,9 @@ class DataHandler:
         self.test_split,
         self.split_idxs_root,
         self.experiment_root,
-        self.grayscale #pg_grayscale
+        self.grayscale,
+        self.gauss_noise,
+        self.gauss_noise_std
       )
     
     return dataset_dict

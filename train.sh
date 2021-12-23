@@ -12,15 +12,17 @@ EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 TRAIN_MODE="cascaded"  # baseline, cascaded
 CASCADED_SCHEME="parallel"  # serial, parallel
 
-MULTIPLE_FCS=true
+MULTIPLE_FCS=false
 
-LAMBDA_VALS=0.0 # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
+LAMBDA_VALS=(0.0 0.5 1.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
 
-#transforms
-GRAYSCALE=false #pg_grayscale
+#Image perturbations
+GRAYSCALE=true
+GAUSS_NOISE=true
+GAUSS_NOISE_STD=0.0
 
 # Optimizer / LR Scheduling
 LR_MILESTONES=(30 60 90)
@@ -32,7 +34,7 @@ NESTEROV=true
 # General / Dataset / Train params
 DEVICE=0
 RANDOM_SEEDS=(42)  # To sweep, set as list. E.g., RANDOM_SEEDS=(42 542 1042)
-EPOCHS=100
+EPOCHS=120
 BATCH_SIZE=128  # 128
 NUM_WORKERS=20
 DEBUG=false
@@ -66,6 +68,8 @@ do
       ${MULTIPLE_FCS} && cmd+=( --multiple_fcs )
       ${USE_ALL_ICS} && cmd+=( --use_all_ICs )
       ${GRAYSCALE} && cmd+=( --grayscale ) #pg_grayscale
+      ${GAUSS_NOISE} && cmd+=( --gauss_noise )
+      ${GAUSS_NOISE_STD} && cmd+=( --gauss_noise_std )
       ${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
 
       # Run command
