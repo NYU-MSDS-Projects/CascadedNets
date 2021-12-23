@@ -158,6 +158,7 @@ class AddGaussianNoise(object):
 
     def __call__(self, tensor):
         noise = torch.Tensor()
+        print("TENSOR SIZE", tensor.size)
         n = tensor.size(1) * tensor.size(2)
         sd2 = self.std * 2
 
@@ -185,7 +186,7 @@ class AddGaussianNoise(object):
         # self.contrast = 1.0 / (5. * max(1.0, tensor.max() + sd2, 1.0 + (0 - tensor.min() - sd2)))
         # print(self.contrast)
 
-        tensor = transforms.functional.adjust_contrast(tensor, self.contrast)
+        tensor = T.functional.adjust_contrast(tensor, self.contrast)
         
         return tensor + newnoise + self.mean
 
@@ -217,14 +218,15 @@ class ImagenetDataset(Dataset):
     if self.gauss_noise: #pg_grayscale
       if not self.grayscale:
         xform_list.append(T.Grayscale(num_output_channels=3)) 
-      xform_list.append(T.ToTensor())
-      xform_list.append(AddGaussianNoise(0.,self.gauss_noise_std))
-
-    xform_list += [
-        T.ToTensor(),
-        EnforceShape(),
-        T.Normalize(mean=_MEAN, std=_STD)
-    ]
+      xform_list += [T.ToTensor(),
+                    AddGaussianNoise(0.,self.gauss_noise_std),
+                    EnforceShape()]
+    else:
+      xform_list += [
+          T.ToTensor(),
+          EnforceShape(),
+          T.Normalize(mean=_MEAN, std=_STD)
+      ]
 
     self.transforms = T.Compose(xform_list)
 
@@ -242,6 +244,9 @@ class ImagenetDataset(Dataset):
     img = Image.open(path)
 
     # Apply image transforms
+    print("TYPE AND SIZE OF IMG")
+    print(type(img))
+    print(img.size)
     img = self.transforms(img)
 
     # Get label and y
