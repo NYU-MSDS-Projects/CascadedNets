@@ -100,8 +100,12 @@ def setup_args():
                       help="Transform images to grayscale")
   parser.add_argument("--gauss_noise", action="store_true", default=False,
                       help="Add gaussian noise to images for training and testing")
-  parser.add_argument("--gauss_noise_std", action="store_true", default=0.0,
+  parser.add_argument("--gauss_noise_std", type=float,
                       help="Standard deviation of gaussian noise to apply when args.gauss_noise = true")
+  parser.add_argument("--blur", action="store_true", default=False,
+                      help="Add gaussian blur to images for testing and training")
+  parser.add_argument("--blur_std", type=float,
+                      help="Standard deviation of gaussian blur to apply when args.gauss_blur = true")
   
   # Optimizer
   parser.add_argument("--learning_rate", type=float, default=0.1,
@@ -178,6 +182,10 @@ def setup_output_dir(args, save_args_to_root=True):
   out_basename += f",wd_{args.weight_decay}"
   out_basename += f",seed_{args.random_seed}"
   
+  print("ARGS.BLUR:", args.blur)
+  print("ARGS.GAUSS_NOISE:", args.gauss_noise)
+  print("ARGS.GAUSS_NOISE_STD:", args.gauss_noise_std)
+
   if args.train_mode in ["sdn", "cascaded"] and args.use_pretrained_weights:
     out_basename += f",pretrained_weights"
   
@@ -193,7 +201,10 @@ def setup_output_dir(args, save_args_to_root=True):
   if args.gauss_noise:
     out_basename += f",gauss_noise_{args.gauss_noise_std}"
   
-    
+  print("BLUR STD", args.blur_std)
+  if args.blur:
+    out_basename += f",blur_{args.blur_std}"
+  
   save_root = os.path.join(
     args.experiment_root,
     args.experiment_name,
@@ -220,6 +231,8 @@ def setup_dataset(args):
       "grayscale": args.grayscale,#pg_grayscale
       "gauss_noise": args.gauss_noise,
       "gauss_noise_std": args.gauss_noise_std,
+      "blur": args.blur,
+      "blur_std":args.blur_std,
       "val_split": args.val_split,
       "test_split": args.test_split,
       "split_idxs_root": args.split_idxs_root,
@@ -231,6 +244,7 @@ def setup_dataset(args):
         "max_classes": 16,
       }
   }
+  print("DATA_DICT", data_dict)
   data_handler = DataHandler(**data_dict)
 
   # Set Loaders
@@ -274,22 +288,12 @@ def setup_model(data_handler, device, args, save_root=""):
     model_init_op = densenet
 
   # Initialize net
-  print("current device", torch.cuda.current_device())
-  print("device count", torch.cuda.device_count())
   print("Instantiating model...")
 
   #dist.init_process_group("NCCL", rank = device, world_size = world_size)
-  for k in model_init_op.__dict__.keys():
-    print(k, model_init_op.__dict__[k])
-  print("model_dict")
-  for k in model_dict.keys():
-    print(k, model_dict[k])
   net =model_init_op.__dict__[args.model_key](**model_dict).to(device)
   
   print("Model instantiated.")
-
-  for name, param in net.named_parameters():
-    print(name, param.device)
   
   # Compute inference costs if ic_only / SDN
   if args.train_mode in ["ic_only", "sdn"]:
@@ -421,7 +425,6 @@ def main(args):
     if torch.cuda.is_available() and not args.use_cpu
     else "cpu"
   )
-  print("DEVICE", device)
 
   # Setup output directory
   save_root = setup_output_dir(args)
@@ -460,8 +463,7 @@ def main(args):
   # train and eval functions
   print("Setting up train and eval functions...")
   print("data handler num_classes: ", data_handler.num_classes)
-  print("MEMORY SUMMARY")
-  print(torch.cuda.memory_summary(device=None, abbreviated=False))
+
   train_fxn = train_handler.get_train_loop(
     #net.module.timesteps,
     net.module.timesteps,
