@@ -53,7 +53,6 @@ class ResNet(nn.Module):
       self._time_bn = False
     else:
       self._time_bn = kwargs["bn_opts"]["temporal_stats"]
-      print("self._time_bn", self._time_bn)
     
     # Set up batch norm operation
     self._norm_layer_op = self._setup_bn_op(**kwargs)

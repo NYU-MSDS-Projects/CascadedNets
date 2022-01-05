@@ -64,7 +64,6 @@ def compute_inference_costs(data_handler, model_dict, args, verbose=False):
     flops_benchmark.init(net, mode=args.train_mode, limit=IC_i)
     _ = net(X_sample)
     n_flops = net.compute_total_flops()
-    print(n_flops)
     perc_flops = n_flops / max_flops * 100
     if verbose:
       print((f"IC {IC_i:2}: # flops: {n_flops:0.4f} GFLOPS -- "

@@ -21,7 +21,6 @@ class SequentialTrainingScheme:
     batch_losses = []
     batch_accs = []
     for batch_i, (data, targets) in enumerate(loader):
-      print("data device", data.device)
       if self.flags.debug and batch_i > 1:
         break
       # One-hot-ify targets
@@ -29,7 +28,6 @@ class SequentialTrainingScheme:
 
       # Determine device placement
       data = data.to(device, non_blocking=True)
-      print("data device", data.device)
       # Zero gradients
       optimizer.zero_grad()
 
@@ -95,7 +93,6 @@ class CascadedTrainingScheme(object):
       optimizer.zero_grad()
       
       predicted_logits = []
-      print(f"number of timesteps: {self.n_timesteps}")
       for t in range(self.n_timesteps):
         #rint(f"timestep {t}")
         #print("MEMORY SUMMARY", torch.cuda.memory_summary(device=0, abbreviated=False))
