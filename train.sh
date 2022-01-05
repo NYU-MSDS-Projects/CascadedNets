@@ -1,18 +1,18 @@
 #!/bin/bash
 
-DATASET_ROOT="/scratch/work/public/imagenet"  # Specify location of datasets
+DATASET_ROOT="../cascade_output/datasets"  # Specify location of datasets
 EXPERIMENT_ROOT="../cascade_output/experiments"  # Specify experiment root
 SPLIT_IDXS_ROOT="../cascade_output/split_idx"  # Specify root of dataset split_idxs
 
 MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
-DATASET_NAME="ImageNet2012_16classes"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
+DATASET_NAME="CIFAR10"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
 TRAIN_MODE="cascaded"  # baseline, cascaded
 CASCADED_SCHEME="parallel"  # serial, parallel
 
-MULTIPLE_FCS=false
+MULTIPLE_FCS=true
 
 LAMBDA_VALS=(0.0 0.5 1.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
 TAU_WEIGHTED_LOSS=false
@@ -21,8 +21,10 @@ USE_ALL_ICS=false
 
 #Image perturbations
 GRAYSCALE=true
-GAUSS_NOISE=true
+GAUSS_NOISE=false
 GAUSS_NOISE_STD=0.0
+BLUR=true
+BLUR_STD=1.0
 
 # Optimizer / LR Scheduling
 LR_MILESTONES=(30 60 90)
@@ -62,6 +64,8 @@ do
       cmd+=( --lr_milestones "${LR_MILESTONES[@]}" )
       cmd+=( --momentum $MOMENTUM )
       cmd+=( --weight_decay $WEIGHT_DECAY )
+      cmd+=( --gauss_noise_std $GAUSS_NOISE_STD )
+      cmd+=( --blur_std $BLUR_STD )
       ${NESTEROV} && cmd+=( --nesterov )
       ${TAU_WEIGHTED_LOSS} && cmd+=( --tau_weighted_loss )
       ${PRETRAINED_WEIGHTS} && cmd+=( --use_pretrained_weights )
@@ -69,7 +73,7 @@ do
       ${USE_ALL_ICS} && cmd+=( --use_all_ICs )
       ${GRAYSCALE} && cmd+=( --grayscale ) #pg_grayscale
       ${GAUSS_NOISE} && cmd+=( --gauss_noise )
-      ${GAUSS_NOISE_STD} && cmd+=( --gauss_noise_std )
+      ${BLUR} && cmd+=( --blur )
       ${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
 
       # Run command
