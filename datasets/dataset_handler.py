@@ -17,6 +17,8 @@ class DataHandler:
       grayscale,
       gauss_noise,
       gauss_noise_std,
+      blur,
+      blur_std,
       val_split=0.1,
       test_split=0.1,
       split_idxs_root="split_idxs",
@@ -37,6 +39,8 @@ class DataHandler:
     self.grayscale = grayscale #pg_grayscale
     self.gauss_noise = gauss_noise
     self.gauss_noise_std = gauss_noise_std
+    self.blur = blur
+    self.blur_std = blur_std
     self._kwargs = kwargs
     
     self._set_num_classes(dataset_name)
@@ -118,11 +122,17 @@ class DataHandler:
         self.data_root,
         dataset_name=self.dataset_name,
         val_split=self.val_split,
+        grayscale=self.grayscale,
+        gauss_noise=self.gauss_noise,
+        gauss_noise_std=self.gauss_noise_std,
+        blur=self.blur,
+        blur_std=self.blur_std,
         split_idxs_root=self.split_idxs_root,
         noise_type=self.noise_type,
         load_previous_splits=self.load_previous_splits,
         verbose=self._verbose
       )
+
     elif self.dataset_name.lower() == "tinyimagenet":
       dataset_dict = tinyimagenet_handler.create_datasets(
         self.data_root,
@@ -147,7 +157,6 @@ class DataHandler:
       # Set number of classes!
       self.num_classes = path_df.class_lbl.unique().shape[0]
       print(f"# Classes: {self.num_classes}")
-      
       # Build dataset dict
       dataset_dict = imagenet2012_handler.create_datasets(
         path_df, 
@@ -157,7 +166,9 @@ class DataHandler:
         self.experiment_root,
         self.grayscale,
         self.gauss_noise,
-        self.gauss_noise_std
+        self.gauss_noise_std,
+        self.blur,
+        self.blur_std
       )
     
     return dataset_dict

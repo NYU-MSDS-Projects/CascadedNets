@@ -8,7 +8,62 @@ import torchvision
 import torchvision.transforms as T
 from datasets import noise
 
+#Add gaussian noise class (from MSDNet)
+class AddGaussianNoise(object):
+    """
+    Author: Omkar Kumbhar
+    Description:
+    Adding gaussian noise to images in the batch
+    """
+    def __init__(self, mean=0., std=1., contrast=0.1):
+        self.std = std
+        self.mean = mean
+        self.contrast = contrast
 
+    def __call__(self, tensor):
+        noise = torch.Tensor()
+        n = tensor.size(1) * tensor.size(2)
+        sd2 = self.std * 2
+
+        while len(noise) < n:
+            # more samples than we require
+            m = 2 * (n - len(noise))
+            new = torch.randn(m) * self.std
+
+            # remove out-of-range samples
+            new = new[new >= -sd2]
+            new = new[new <= sd2]
+
+            # append to noise tensor
+            noise = torch.cat([noise, new])
+        
+        # pick first n samples and reshape to 2D
+        noise = torch.reshape(noise[:n], (tensor.size(1), tensor.size(2)))
+
+        # stack noise and translate by mean to produce std + 
+        newnoise = torch.stack([noise, noise, noise]) + self.mean
+
+        # shift image hist to mean = 0.5
+        tensor = tensor + (0.5 - tensor.mean())
+
+        # self.contrast = 1.0 / (5. * max(1.0, tensor.max() + sd2, 1.0 + (0 - tensor.min() - sd2)))
+        # print(self.contrast)
+
+        tensor = T.functional.adjust_contrast(tensor, self.contrast)
+        
+        return tensor + newnoise + self.mean
+
+class AddGaussianBlur(object):
+    def __init__(self, kernel=7, std=1.0):
+        self.kernel = kernel
+        self.std = std
+    
+    def __call__(self, tensor):
+        if self.std != 0.0:
+            tensor = T.GaussianBlur(kernel_size = 7,sigma=self.std)(tensor)
+
+        return tensor
+        
 class CIFAR10Handler(torchvision.datasets.CIFAR10):
   """CIFAR10 dataset handler."""
 
@@ -45,6 +100,11 @@ def get_transforms(
     dataset_key,
     mean,
     std,
+    grayscale=False,
+    gauss_noise=False,
+    gauss_noise_std=0.0,
+    blur=False,
+    blur_std=0.0,
     noise_type=None,
     noise_transform_all=False
   ):
@@ -52,14 +112,30 @@ def get_transforms(
   if dataset_key == "train":
     transforms_list = [
         T.RandomCrop(32, padding=4, padding_mode="reflect"),
-        T.RandomHorizontalFlip(),
-        T.ToTensor(),
-        T.Normalize(mean, std),
+        T.RandomHorizontalFlip(p=0.5)
     ]
   else:
-    transforms_list = [
+    transforms_list = []
+  
+  #Add in grayscale, noise and blur handling if necessary
+  if grayscale:
+    transforms_list.append(T.Grayscale(num_output_channels=3)) #pg_grayscale
+  print("BLUR", blur, blur_std)
+  print("GAUSS_NOISE", gauss_noise, gauss_noise_std)
+  if blur or gauss_noise:
+    if not grayscale:
+      transforms_list.append(T.Grayscale(num_output_channels=3)) 
+    
+    if blur:
+      transforms_list += [T.ToTensor(),
+                    AddGaussianBlur(7,blur_std)]
+    elif gauss_noise:
+      transforms_list += [T.ToTensor(),
+                    AddGaussianNoise(0.,gauss_noise_std)]
+  else:
+    transforms_list += [
         T.ToTensor(),
-        T.Normalize(mean, std),
+        T.Normalize(mean, std)
     ]
 
   if (noise_type is not None
@@ -153,6 +229,11 @@ def build_dataset(
     dataset_key,
     mean,
     std,
+    grayscale=False,
+    gauss_noise=False,
+    gauss_noise_std=0.0,
+    blur=False,
+    blur_std=0.0,
     val_split=None,
     split_idxs_root=None,
     load_previous_splits=True,
@@ -177,6 +258,11 @@ def build_dataset(
     dataset_key, 
     mean, 
     std, 
+    grayscale,
+    gauss_noise,
+    gauss_noise_std,
+    blur,
+    blur_std,
     noise_type, 
     noise_transform_all,
   )
@@ -223,6 +309,11 @@ def create_datasets(
     root,
     dataset_name,
     val_split,
+    grayscale=False,
+    gauss_noise=False,
+    gauss_noise_std=0.0,
+    blur=False,
+    blur_std=0.0,
     load_previous_splits=False,
     split_idxs_root=None,
     noise_type=None,
@@ -233,6 +324,12 @@ def create_datasets(
   # Set stats
   mean, std = set_dataset_stats(dataset_name)
 
+  print("CREATE_DATASETS")
+  print("GRAYSCALE", grayscale)
+  print("GAUSS_NOISE", gauss_noise)
+  print("GAUSS_NOISE_STD", gauss_noise_std)
+  print("BLUR", blur)
+  print("BLUR_STD", blur_std)
   # Build datasets
   train_dataset, val_dataset = build_dataset(
     root,
@@ -240,6 +337,11 @@ def create_datasets(
     dataset_key="train",
     mean=mean,
     std=std,
+    grayscale=grayscale,
+    gauss_noise=gauss_noise,
+    gauss_noise_std=gauss_noise_std,
+    blur=blur,
+    blur_std=blur_std,
     val_split=val_split,
     split_idxs_root=split_idxs_root,
     load_previous_splits=load_previous_splits,
@@ -253,6 +355,11 @@ def create_datasets(
     dataset_key="test",
     mean=mean,
     std=std,
+    grayscale=grayscale,
+    gauss_noise=gauss_noise,
+    gauss_noise_std=gauss_noise_std,
+    blur=blur,
+    blur_std=blur_std,
     noise_type=noise_type,
     load_previous_splits=load_previous_splits
   )
