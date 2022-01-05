@@ -158,7 +158,6 @@ class AddGaussianNoise(object):
 
     def __call__(self, tensor):
         noise = torch.Tensor()
-        print("TENSOR SIZE", tensor.size)
         n = tensor.size(1) * tensor.size(2)
         sd2 = self.std * 2
 
@@ -190,14 +189,27 @@ class AddGaussianNoise(object):
         
         return tensor + newnoise + self.mean
 
+class AddGaussianBlur(object):
+    def __init__(self, kernel=7, std=1.0):
+        self.kernel = kernel
+        self.std = std
+    
+    def __call__(self, tensor):
+        if self.std != 0.0:
+            tensor = T.GaussianBlur(kernel_size = 7,sigma=self.std)(tensor)
+
+        return tensor
+
 
 class ImagenetDataset(Dataset):
-  def __init__(self, path_df, dataset_key, grayscale, gauss_noise, gauss_noise_std): #pg_grayscale
+  def __init__(self, path_df, dataset_key, grayscale, gauss_noise, gauss_noise_std, blur, blur_std): #pg_grayscale
     self.path_df = path_df
     self.dataset_key = dataset_key
     self.grayscale = grayscale
     self.gauss_noise = gauss_noise
     self.gauss_noise_std = gauss_noise_std
+    self.blur = blur
+    self.blur_std = blur_std
 
     # Setup transforms and paths
     self._setup_transforms()
@@ -214,13 +226,20 @@ class ImagenetDataset(Dataset):
     #Add in grayscale, noise and blur handling if necessary
     if self.grayscale: #pg_grayscale
       xform_list.append(T.Grayscale(num_output_channels=3)) #pg_grayscale
-    
-    if self.gauss_noise: #pg_grayscale
+    print("SELF.BLUR", self.blur)
+    print("SELF.GAUSS_NOISE", self.gauss_noise)
+    if self.blur or self.gauss_noise:
       if not self.grayscale:
         xform_list.append(T.Grayscale(num_output_channels=3)) 
-      xform_list += [T.ToTensor(),
-                    AddGaussianNoise(0.,self.gauss_noise_std),
-                    EnforceShape()]
+      
+      if self.blur:
+        xform_list += [T.ToTensor(),
+                      AddGaussianBlur(7,self.blur_std),
+                      EnforceShape()]
+      elif self.gauss_noise:
+        xform_list += [T.ToTensor(),
+                      AddGaussianNoise(0.,self.gauss_noise_std),
+                      EnforceShape()]
     else:
       xform_list += [
           T.ToTensor(),
@@ -244,9 +263,6 @@ class ImagenetDataset(Dataset):
     img = Image.open(path)
 
     # Apply image transforms
-    print("TYPE AND SIZE OF IMG")
-    print(type(img))
-    print(img.size)
     img = self.transforms(img)
 
     # Get label and y
@@ -256,7 +272,7 @@ class ImagenetDataset(Dataset):
     return img, y  #, label
 
 
-def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_root, grayscale, gauss_noise, gauss_noise_std): #pg_grayscale
+def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_root, grayscale, gauss_noise, gauss_noise_std, blur, blur_std): #pg_grayscale
   # Label handler
   print(f"CREATE_DATASETS PATH_DF: {len(path_df)}")
   label_handler = Imagenet16Labels(experiment_root)
@@ -272,19 +288,20 @@ def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_
   # Train
   print("Loading train data...")
   train_df = path_df.loc[split_locs["train"]]
-  train_dataset = ImagenetDataset(train_df, 'train', grayscale, gauss_noise, gauss_noise_std) #pg_grayscale
+  print("BLUR", blur)
+  train_dataset = ImagenetDataset(train_df, 'train', grayscale, gauss_noise, gauss_noise_std, blur, blur_std) #pg_grayscale
   print(f"{len(train_dataset):,} train examples loaded.")
 
   # Validation
   print("Loading validation data...")
   val_df = path_df.loc[split_locs["val"]]
-  val_dataset = ImagenetDataset(val_df, 'val',grayscale,gauss_noise, gauss_noise_std) #pg_grayscale
+  val_dataset = ImagenetDataset(val_df, 'val',grayscale,gauss_noise, gauss_noise_std,blur, blur_std) #pg_grayscale
   print(f"{len(val_dataset):,} train examples loaded.")
 
   # Test
   print("Loading test data...")
   test_df = path_df.loc[split_locs["test"]]
-  test_dataset = ImagenetDataset(test_df, 'test',grayscale, gauss_noise, gauss_noise_std) #pg_grayscale
+  test_dataset = ImagenetDataset(test_df, 'test',grayscale, gauss_noise, gauss_noise_std,blur, blur_std) #pg_grayscale
   print(f"{len(test_dataset):,} test examples loaded.")
 
   # Package
