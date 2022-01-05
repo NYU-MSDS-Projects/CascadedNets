@@ -90,6 +90,14 @@ def setup_args():
                       help="target_IC_inference_costs")
   parser.add_argument("--grayscale", action="store_true", default=False,
                       help="Transform images to grayscale")
+  parser.add_argument("--gauss_noise", action="store_true", default=False,
+                      help="Add gaussian noise to images for training and testing")
+  parser.add_argument("--gauss_noise_std", action="store_true", default=0.0,
+                      help="Standard deviation of gaussian noise to apply when args.gauss_noise = true")
+  parser.add_argument("--blur", action="store_true", default=False,
+                      help="Add gaussian blur to images for testing and training")
+  parser.add_argument("--blur_std", action="store_true", default=0.0,
+                      help="Standard deviation of gaussian blur to apply when args.gauss_blur = true")
   
   
   # Optimizer
@@ -265,12 +273,31 @@ def main(args):
     with open(exp_args_path, "r") as infile:
       loaded_args = argparse.Namespace(**json.load(infile))
 
+    #add in conditionals for grayscale, blur and gaussian noise
+    if str.find(exp_path, 'grayscale')>-1:
+      print(f"Setting grayscale = True for {exp_path}")
+      args.grayscale = True
+    
+    if str.find(exp_path, 'blur')>-1:
+      print(f"Setting blur = True and blur_std = 1.0 for {exp_path}")
+      args.blur = True
+      args.blur_std = 1.0
+    
+    if str.find(exp_path, 'noise')>-1:
+      print(f"Setting gauss_noise = True and gauss_noise_std = 1.0 for {exp_path}")
+      args.gauss_noise = True
+      args.gauss_noise_std = 1.0
+
     # Data Handler
     data_dict = {
         "dataset_name": loaded_args.dataset_name,
         "data_root": args.dataset_root,
         "experiment_root" : args.experiment_root,
-        "grayscale": args.grayscale,#pg_grayscale
+        "grayscale": args.grayscale,
+        "gauss_noise":args.gauss_noise,
+        "gauss_noise_std":args.gauss_noise_std,
+        "blur":args.blur,
+        "blur_std":args.blur_std,
         "val_split": loaded_args.val_split,
         "split_idxs_root": args.split_idxs_root,
         "noise_type": loaded_args.augmentation_noise_type,
