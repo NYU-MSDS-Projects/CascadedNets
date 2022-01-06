@@ -4,6 +4,7 @@ import torch
 from datasets import cifar_handler
 from datasets import tinyimagenet_handler
 from datasets import imagenet2012_handler
+#from datasets import stl10_handler
 
 
 class DataHandler:
@@ -117,6 +118,12 @@ class DataHandler:
 
   def _build_datasets(self):
     """Build dataset."""
+    print("_build_datasets")
+    print("self.grayscale", self.grayscale)
+    print("self.gauss_noise", self.gauss_noise)
+    print("self.gauss_noise_std", self.gauss_noise_std)
+    print("self.blur", self.blur)
+    print("self.blur_std", self.gauss_noise_std)
     if "cifar" in self.dataset_name.lower():
       dataset_dict = cifar_handler.create_datasets(
         self.data_root,
