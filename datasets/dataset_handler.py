@@ -4,7 +4,7 @@ import torch
 from datasets import cifar_handler
 from datasets import tinyimagenet_handler
 from datasets import imagenet2012_handler
-#from datasets import stl10_handler
+from datasets import stl10_handler
 
 
 class DataHandler:
@@ -70,6 +70,8 @@ class DataHandler:
       self.num_classes = 100
     elif dataset_name == "TinyImageNet":
       self.num_classes = 200
+    elif dataset_name == "STL10":
+      self.num_classes = 10
 
   def get_transform(self, dataset_key=None):
     """Build dataset transform."""
@@ -146,6 +148,23 @@ class DataHandler:
         self.val_split,
         self.split_idxs_root
       )
+    
+    elif "stl" in self.dataset_name.lower():
+        dataset_dict = stl10_handler.create_datasets(
+          self.data_root,
+          dataset_name=self.dataset_name,
+          val_split=self.val_split,
+          grayscale=self.grayscale,
+          gauss_noise=self.gauss_noise,
+          gauss_noise_std=self.gauss_noise_std,
+          blur=self.blur,
+          blur_std=self.blur_std,
+          split_idxs_root=self.split_idxs_root,
+          noise_type=self.noise_type,
+          load_previous_splits=self.load_previous_splits,
+          verbose=self._verbose
+        )
+
     elif str.find(self.dataset_name.lower(), "imagenet2012")>-1:
       # Build path dataframe
       print("EXPERIMENT_ROOT", self.experiment_root)
