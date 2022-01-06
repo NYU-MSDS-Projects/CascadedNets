@@ -1,12 +1,12 @@
 #!/bin/bash
 
-DATASET_ROOT="/scratch/work/public/imagenet"  # Specify location of datasets
+DATASET_ROOT="../cascade_output/datasets"    #"/scratch/work/public/imagenet"  # Specify location of datasets
 EXPERIMENT_ROOT="../cascade_output/experiments"  # Specify experiment root
 SPLIT_IDXS_ROOT="../cascade_output/split_idx"  # Specify root of dataset split_idxs
 
 # Experiment name to evaluate
 MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
-DATASET_NAME="ImageNet2012_16classes"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
+DATASET_NAME="CIFAR10"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 TRAIN_MODE="cascaded"  # baseline, cascaded_seq, cascaded
@@ -47,15 +47,15 @@ cmd+=( --tdl_mode $TDL_MODE )
 cmd+=( --tdl_alpha $TDL_ALPHA )
 cmd+=( --noise_var $NOISE_VAR )
 cmd+=( --n_timesteps $N_TIMESTEPS )
+cmd+=( --gauss_noise_std $GAUSS_NOISE_STD )
+cmd+=( --blur_std $BLUR_STD )
 
 ${KEEP_LOGITS} && cmd+=( --keep_logits )
 ${KEEP_EMBEDDINGS} && cmd+=( --keep_embeddings )
 ${DEBUG} && cmd+=( --debug ) && echo "DEBUG MODE ENABLED"
 ${GRAYSCALE} && cmd+=( --grayscale ) #pg_grayscale
 ${GAUSS_NOISE} && cmd+=( --gauss_noise )
-${GAUSS_NOISE_STD} && cmd+=( --gauss_noise_std )
 ${BLUR} && cmd+=( --blur )
-${BLUR_STD} && cmd+=( --blur )
 ${FORCE_OVERWRITE} && cmd+=( --force_overwrite ) && echo "FORCE OVERWRITE"
 
 # Run command

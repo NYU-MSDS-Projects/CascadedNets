@@ -92,11 +92,11 @@ def setup_args():
                       help="Transform images to grayscale")
   parser.add_argument("--gauss_noise", action="store_true", default=False,
                       help="Add gaussian noise to images for training and testing")
-  parser.add_argument("--gauss_noise_std", action="store_true", default=0.0,
+  parser.add_argument("--gauss_noise_std", type=float,
                       help="Standard deviation of gaussian noise to apply when args.gauss_noise = true")
   parser.add_argument("--blur", action="store_true", default=False,
                       help="Add gaussian blur to images for testing and training")
-  parser.add_argument("--blur_std", action="store_true", default=0.0,
+  parser.add_argument("--blur_std", type=float,
                       help="Standard deviation of gaussian blur to apply when args.gauss_blur = true")
   
   
