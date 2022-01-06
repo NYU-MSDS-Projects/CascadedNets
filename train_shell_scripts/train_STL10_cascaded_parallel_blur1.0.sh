@@ -5,7 +5,7 @@ EXPERIMENT_ROOT="../cascade_output_ES/experiments"  # Specify experiment root
 SPLIT_IDXS_ROOT="../cascade_output_ES/split_idx"  # Specify root of dataset split_idxs
 
 MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
-DATASET_NAME="CIFAR10"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
+DATASET_NAME="STL10"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
