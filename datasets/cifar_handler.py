@@ -119,23 +119,23 @@ def get_transforms(
   
   #Add in grayscale, noise and blur handling if necessary
   if grayscale:
-    transforms_list.append(T.Grayscale(num_output_channels=3)) #pg_grayscale
+    transforms_list += [T.Grayscale(num_output_channels=3),
+                       T.ToTensor()]
   print("BLUR", blur, blur_std)
   print("GAUSS_NOISE", gauss_noise, gauss_noise_std)
   if blur or gauss_noise:
     if not grayscale:
-      transforms_list.append(T.Grayscale(num_output_channels=3)) 
+      transforms_list += [T.Grayscale(num_output_channels=3),
+                          T.ToTensor()]
     
     if blur:
-      transforms_list += [T.ToTensor(),
-                    AddGaussianBlur(7,blur_std)]
+      transforms_list += [AddGaussianBlur(7,blur_std)]
     elif gauss_noise:
-      transforms_list += [T.ToTensor(),
-                    AddGaussianNoise(0.,gauss_noise_std)]
-  else:
+      transforms_list += [AddGaussianNoise(0.,gauss_noise_std)]
+  
+  if grayscale == False & blur == False & gauss_noise == False:
     transforms_list += [
-        T.ToTensor(),
-        T.Normalize(mean, std)
+        T.ToTensor()
     ]
 
   if (noise_type is not None
