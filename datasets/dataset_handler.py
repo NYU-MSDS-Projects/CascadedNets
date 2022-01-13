@@ -196,6 +196,9 @@ class DataHandler:
         self.blur,
         self.blur_std
       )
+
+      #create weighted sampler for 16 class dataset
+      path_df['y'].value_counts()
     
     return dataset_dict
 

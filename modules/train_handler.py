@@ -105,7 +105,13 @@ class CascadedTrainingScheme(object):
       
       # One-hot-ify targets and send to output device
       targets = targets.to(net(data, t).device, non_blocking=True)
+      print("TRAIN_HANDLER TARGETS SHAPE")
+      print(targets.shape)
+      print(torch.unique(targets))
+      print("self.num_classes", self.num_classes)
+      print(targets.dtype)
       y = torch.eye(self.num_classes)[targets]
+      print(y.shape)
       y = y.to(targets.device, non_blocking=True)
       
       loss = 0
