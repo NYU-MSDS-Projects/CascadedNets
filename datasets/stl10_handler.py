@@ -7,6 +7,7 @@ import torch
 import torchvision
 import torchvision.transforms as T
 from datasets import noise
+import numpy as np
 
 #Add gaussian noise class (from MSDNet)
 class AddGaussianNoise(object):
@@ -64,11 +65,15 @@ class AddGaussianBlur(object):
 
         return tensor
         
-class STL10Handler(torchvision.datasets.stl10):
+class STL10Handler(torchvision.datasets.STL10):
   """STL10 dataset handler."""
 
   def __getitem__(self, index):
-    img, target = self.data[index], self.targets[index]
+    img, target = self.data[index], self.labels[index]
+    img = img.astype(np.uint8)
+    #img = [T.ToPILImage()(x) for x in img]
+    #img = Image.fromarray((img * 255).astype(np.uint8))
+    
     img = Image.fromarray(img)
 
     if self.transform is not None:
@@ -256,14 +261,18 @@ def build_dataset(
   # Build dataset source
   dataset_src = dataset_op(
     root=root,
-    train=dataset_key == "train",
+    split=dataset_key,
     transform=transforms,
     target_transform=None,
     download=True,
   )
 
+
   # Get number samples in dataset
   dataset_len = dataset_src.data.shape[0]
+  print("DATSET_SRC.DATA SHAPE BEFORE TRANSPOSE: {}".format(dataset_src.data.shape))
+  dataset_src.data = dataset_src.data.transpose((0,2,3,1))
+  print("DATSET_SRC.DATA SHAPE AFTER TRANSPOSE: {}".format(dataset_src.data.shape))
 
   # Split
   if dataset_key == "train":
