@@ -10,9 +10,9 @@ EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
 TRAIN_MODE="cascaded"  # baseline, cascaded
-CASCADED_SCHEME="parallel"  # serial, parallel
+CASCADED_SCHEME="serial"  # serial, parallel
 
-MULTIPLE_FCS=true
+MULTIPLE_FCS=false
 
 LAMBDA_VALS=(0.0 0.5 1.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
 TAU_WEIGHTED_LOSS=false
