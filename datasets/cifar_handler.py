@@ -112,7 +112,7 @@ def get_transforms(
   if dataset_key == "train":
     transforms_list = [
         T.RandomCrop(32, padding=4, padding_mode="reflect"),
-        T.RandomHorizontalFlip(p=0.5)
+        T.RandomHorizontalFlip()
     ]
   else:
     transforms_list = []
@@ -133,10 +133,11 @@ def get_transforms(
     elif gauss_noise:
       transforms_list += [AddGaussianNoise(0.,gauss_noise_std)]
   
-  if grayscale == False & blur == False & gauss_noise == False:
+  if (not grayscale) & (not blur) & (not gauss_noise):
     transforms_list += [
         T.ToTensor()
     ]
+  print("TRANSFORMS_LIST", transforms_list)
 
   if (noise_type is not None
       and (dataset_key == "train" or noise_transform_all)):
@@ -275,6 +276,10 @@ def build_dataset(
     target_transform=None,
     download=True,
   )
+  print("dataset_src attributes")
+  print(dir(dataset_src))
+  print(type(dataset_src.data[0]))
+  print(dataset_src.data.shape)
 
   # Get number samples in dataset
   dataset_len = dataset_src.data.shape[0]
