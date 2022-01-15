@@ -5,6 +5,7 @@ from datasets import cifar_handler
 from datasets import tinyimagenet_handler
 from datasets import imagenet2012_handler
 from datasets import stl10_handler
+import numpy as np
 
 
 class DataHandler:
@@ -196,9 +197,6 @@ class DataHandler:
         self.blur,
         self.blur_std
       )
-
-      #create weighted sampler for 16 class dataset
-      path_df['y'].value_counts()
     
     return dataset_dict
 
@@ -212,19 +210,43 @@ class DataHandler:
     # Get dataset source
     dataset_src = self.datasets[dataset_key]
     print("DATASET_SRC", dataset_src)
+
     # Specify shuffling
     if dont_shuffle_train:
       shuffle = False
     else:
       shuffle = dataset_key == "train"
     
-    # Creates dataloaders, which load data in batches
-    loader = torch.utils.data.DataLoader(
+    #create weighted sampler for 16 class dataset
+    print("SELF.DATASET_NAME", self.dataset_name)
+    if self.dataset_name == 'ImageNet2012_16classes_rebalanced' and dataset_key == 'train':
+      print("Creating balanced sampler for 16 class ImageNet dataset")
+      print(dataset_src.path_df.y.unique())
+      print(dataset_src.path_df.y.value_counts())
+      class_sample_count = np.array([len(dataset_src.path_df[dataset_src.path_df.y == t]) for t in dataset_src.path_df.y.unique()])
+      weights = 1./class_sample_count
+      print(class_sample_count)
+      print(weights)
+      samples_weight = torch.from_numpy(np.array([weights[t] for t in dataset_src.path_df.y])).double()
+      weighted_sampler = torch.utils.data.WeightedRandomSampler(samples_weight, len(dataset_src.path_df), replacement=True)
+      
+      # Creates dataloaders, which load data in batches
+      loader = torch.utils.data.DataLoader(
         dataset=dataset_src,
         batch_size=flags.batch_size,
-        shuffle=shuffle,
+        sampler = weighted_sampler,
         num_workers=flags.num_workers,
         drop_last=flags.drop_last,
         pin_memory=True)
+    else:
+
+      # Creates dataloaders, which load data in batches
+      loader = torch.utils.data.DataLoader(
+          dataset=dataset_src,
+          batch_size=flags.batch_size,
+          shuffle=shuffle,
+          num_workers=flags.num_workers,
+          drop_last=flags.drop_last,
+          pin_memory=True)
     
     return loader
