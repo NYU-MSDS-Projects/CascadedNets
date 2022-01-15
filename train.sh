@@ -1,16 +1,16 @@
 #!/bin/bash
 
-DATASET_ROOT="../cascade_output/datasets"  # Specify location of datasets
+DATASET_ROOT="/scratch/work/public/imagenet"  # /scratch/work/public/imagenet, ../cascade_output/datasets
 EXPERIMENT_ROOT="../cascade_output/experiments"  # Specify experiment root
 SPLIT_IDXS_ROOT="../cascade_output/split_idx"  # Specify root of dataset split_idxs
 
 MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
-DATASET_NAME="CIFAR10"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
+DATASET_NAME="ImageNet2012_16classes_rebalanced"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
 TRAIN_MODE="cascaded"  # baseline, cascaded
-CASCADED_SCHEME="serial"  # serial, parallel
+CASCADED_SCHEME="parallel"  # serial, parallel
 
 MULTIPLE_FCS=false
 
@@ -20,11 +20,11 @@ PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
 
 #Image perturbations
-GRAYSCALE=true
+GRAYSCALE=false
 GAUSS_NOISE=false
 GAUSS_NOISE_STD=0.0
-BLUR=true
-BLUR_STD=1.0
+BLUR=false
+BLUR_STD=0.0
 
 # Optimizer / LR Scheduling
 LR_MILESTONES=(30 60 90)
