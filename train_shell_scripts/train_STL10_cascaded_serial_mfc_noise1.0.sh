@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 DATASET_ROOT="../cascade_output_ES/datasets"  # Specify location of datasets
 EXPERIMENT_ROOT="../cascade_output_ES/experiments"  # Specify experiment root
 SPLIT_IDXS_ROOT="../cascade_output_ES/split_idx"  # Specify root of dataset split_idxs
@@ -10,11 +11,11 @@ EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
 TRAIN_MODE="cascaded"  # baseline, cascaded
-CASCADED_SCHEME="parallel"  # serial, parallel
+CASCADED_SCHEME="serial"  # serial, parallel
 
 MULTIPLE_FCS=true
 
-LAMBDA_VALS=0.0 # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
+LAMBDA_VALS=(1.0 0.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false

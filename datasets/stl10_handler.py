@@ -7,6 +7,7 @@ import torch
 import torchvision
 import torchvision.transforms as T
 from datasets import noise
+import numpy as np
 
 #Add gaussian noise class (from MSDNet)
 class AddGaussianNoise(object):
@@ -64,27 +65,15 @@ class AddGaussianBlur(object):
 
         return tensor
         
-class CIFAR10Handler(torchvision.datasets.CIFAR10):
-  """CIFAR10 dataset handler."""
+class STL10Handler(torchvision.datasets.STL10):
+  """STL10 dataset handler."""
 
   def __getitem__(self, index):
-    img, target = self.data[index], self.targets[index]
-    img = Image.fromarray(img)
-
-    if self.transform is not None:
-      img = self.transform(img)
-
-    if self.target_transform is not None:
-      target = self.target_transform(target)
-
-    return img, target
-
-
-class CIFAR100Handler(torchvision.datasets.CIFAR100):
-  """CIFAR100 dataset handler."""
-
-  def __getitem__(self, index):
-    img, target = self.data[index], self.targets[index]
+    img, target = self.data[index], self.labels[index]
+    img = img.astype(np.uint8)
+    #img = [T.ToPILImage()(x) for x in img]
+    #img = Image.fromarray((img * 255).astype(np.uint8))
+    
     img = Image.fromarray(img)
 
     if self.transform is not None:
@@ -133,11 +122,10 @@ def get_transforms(
     elif gauss_noise:
       transforms_list += [AddGaussianNoise(0.,gauss_noise_std)]
   
-  if (not grayscale) & (not blur) & (not gauss_noise):
+  if grayscale == False & blur == False & gauss_noise == False:
     transforms_list += [
         T.ToTensor()
     ]
-  print("TRANSFORMS_LIST", transforms_list)
 
   if (noise_type is not None
       and (dataset_key == "train" or noise_transform_all)):
@@ -214,13 +202,17 @@ def split_dev_set(
 
 def set_dataset_stats(dataset_name):
   """Set dataset stats for normalization given dataset."""
-  if "cifar10" in dataset_name.lower():
+  if dataset_name.lower() == "cifar10":
     mean = (0.4914, 0.4822, 0.4465)
     std = (0.2470, 0.2435, 0.2616)
 
   elif dataset_name.lower() == "cifar100":
     mean = (0.5071, 0.4866, 0.4409)
     std = (0.2673, 0.2564, 0.2762)
+  
+  elif dataset_name.lower() == 'stl10':
+    mean = (0.4467, 0.4398, 0.4066)
+    std = (0.2241, 0.2215, 0.2239)
   return mean, std
 
 
@@ -247,10 +239,8 @@ def build_dataset(
     print(f"Loading {dataset_name} {dataset_key} data...")
 
   # Datsaet
-  if (dataset_name.lower() == "cifar10") or (dataset_name.lower() == "cifar10_normalized"):
-    dataset_op = CIFAR10Handler
-  elif dataset_name.lower() == "cifar100":
-    dataset_op = CIFAR100Handler
+  if dataset_name.lower() == "stl10":
+    dataset_op = STL10Handler
   else:
     assert False, f"{dataset_name} wrapper not implemented!"
 
@@ -271,18 +261,18 @@ def build_dataset(
   # Build dataset source
   dataset_src = dataset_op(
     root=root,
-    train=dataset_key == "train",
+    split=dataset_key,
     transform=transforms,
     target_transform=None,
     download=True,
   )
-  print("dataset_src attributes")
-  print(dir(dataset_src))
-  print(type(dataset_src.data[0]))
-  print(dataset_src.data.shape)
+
 
   # Get number samples in dataset
   dataset_len = dataset_src.data.shape[0]
+  print("DATSET_SRC.DATA SHAPE BEFORE TRANSPOSE: {}".format(dataset_src.data.shape))
+  dataset_src.data = dataset_src.data.transpose((0,2,3,1))
+  print("DATSET_SRC.DATA SHAPE AFTER TRANSPOSE: {}".format(dataset_src.data.shape))
 
   # Split
   if dataset_key == "train":

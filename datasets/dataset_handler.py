@@ -4,7 +4,8 @@ import torch
 from datasets import cifar_handler
 from datasets import tinyimagenet_handler
 from datasets import imagenet2012_handler
-#from datasets import stl10_handler
+from datasets import stl10_handler
+import numpy as np
 
 
 class DataHandler:
@@ -70,6 +71,8 @@ class DataHandler:
       self.num_classes = 100
     elif dataset_name == "TinyImageNet":
       self.num_classes = 200
+    elif dataset_name == "STL10":
+      self.num_classes = 10
 
   def get_transform(self, dataset_key=None):
     """Build dataset transform."""
@@ -146,6 +149,23 @@ class DataHandler:
         self.val_split,
         self.split_idxs_root
       )
+    
+    elif "stl" in self.dataset_name.lower():
+        dataset_dict = stl10_handler.create_datasets(
+          self.data_root,
+          dataset_name=self.dataset_name,
+          val_split=self.val_split,
+          grayscale=self.grayscale,
+          gauss_noise=self.gauss_noise,
+          gauss_noise_std=self.gauss_noise_std,
+          blur=self.blur,
+          blur_std=self.blur_std,
+          split_idxs_root=self.split_idxs_root,
+          noise_type=self.noise_type,
+          load_previous_splits=self.load_previous_splits,
+          verbose=self._verbose
+        )
+
     elif str.find(self.dataset_name.lower(), "imagenet2012")>-1:
       # Build path dataframe
       print("EXPERIMENT_ROOT", self.experiment_root)
@@ -190,19 +210,43 @@ class DataHandler:
     # Get dataset source
     dataset_src = self.datasets[dataset_key]
     print("DATASET_SRC", dataset_src)
+
     # Specify shuffling
     if dont_shuffle_train:
       shuffle = False
     else:
       shuffle = dataset_key == "train"
     
-    # Creates dataloaders, which load data in batches
-    loader = torch.utils.data.DataLoader(
+    #create weighted sampler for 16 class dataset
+    print("SELF.DATASET_NAME", self.dataset_name)
+    if self.dataset_name == 'ImageNet2012_16classes_rebalanced' and dataset_key == 'train':
+      print("Creating balanced sampler for 16 class ImageNet dataset")
+      print(dataset_src.path_df.y.unique())
+      print(dataset_src.path_df.y.value_counts())
+      class_sample_count = np.array([len(dataset_src.path_df[dataset_src.path_df.y == t]) for t in dataset_src.path_df.y.unique()])
+      weights = 1./class_sample_count
+      print(class_sample_count)
+      print(weights)
+      samples_weight = torch.from_numpy(np.array([weights[t] for t in dataset_src.path_df.y])).double()
+      weighted_sampler = torch.utils.data.WeightedRandomSampler(samples_weight, len(dataset_src.path_df), replacement=True)
+      
+      # Creates dataloaders, which load data in batches
+      loader = torch.utils.data.DataLoader(
         dataset=dataset_src,
         batch_size=flags.batch_size,
-        shuffle=shuffle,
+        sampler = weighted_sampler,
         num_workers=flags.num_workers,
         drop_last=flags.drop_last,
         pin_memory=True)
+    else:
+
+      # Creates dataloaders, which load data in batches
+      loader = torch.utils.data.DataLoader(
+          dataset=dataset_src,
+          batch_size=flags.batch_size,
+          shuffle=shuffle,
+          num_workers=flags.num_workers,
+          drop_last=flags.drop_last,
+          pin_memory=True)
     
     return loader

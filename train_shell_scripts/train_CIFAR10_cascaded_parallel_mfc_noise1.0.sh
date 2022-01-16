@@ -1,11 +1,11 @@
 #!/bin/bash
 
-DATASET_ROOT="../cascade_output_ES/datasets"  # Specify location of datasets
-EXPERIMENT_ROOT="../cascade_output_ES/experiments"  # Specify experiment root
-SPLIT_IDXS_ROOT="../cascade_output_ES/split_idx"  # Specify root of dataset split_idxs
+DATASET_ROOT="../cascade_output/datasets"  # Specify location of datasets
+EXPERIMENT_ROOT="../cascade_output/experiments"  # Specify experiment root
+SPLIT_IDXS_ROOT="../cascade_output/split_idx"  # Specify root of dataset split_idxs
 
 MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
-DATASET_NAME="STL10"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012, STL10
+DATASET_NAME="CIFAR10"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012, STL10
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
@@ -14,7 +14,7 @@ CASCADED_SCHEME="parallel"  # serial, parallel
 
 MULTIPLE_FCS=true
 
-LAMBDA_VALS=(0.0 1.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
+LAMBDA_VALS=(0.0 0.5 1.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false

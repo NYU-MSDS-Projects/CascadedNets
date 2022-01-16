@@ -5,24 +5,24 @@ EXPERIMENT_ROOT="../cascade_output_ES/experiments"  # Specify experiment root
 SPLIT_IDXS_ROOT="../cascade_output_ES/split_idx"  # Specify root of dataset split_idxs
 
 MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
-DATASET_NAME="STL10"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012, STL10
+DATASET_NAME="CIFAR10"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012, STL10
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
 TRAIN_MODE="cascaded"  # baseline, cascaded
-CASCADED_SCHEME="parallel"  # serial, parallel
+CASCADED_SCHEME="serial"  # serial, parallel
 
 MULTIPLE_FCS=true
 
-LAMBDA_VALS=(0.0 1.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
+LAMBDA_VALS=(1.0 0.0) # To sweep, set as list. E.g., LAMBDA_VALS=(0.0 0.25 0.5 0.83 1.0)
 TAU_WEIGHTED_LOSS=false
 PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
 
 #Image perturbations
-GRAYSCALE=true
-GAUSS_NOISE=true
-GAUSS_NOISE_STD=1.0
+GRAYSCALE=false
+GAUSS_NOISE=false
+GAUSS_NOISE_STD=0.0
 BLUR=false
 BLUR_STD=0.0
 

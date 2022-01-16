@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import torch.nn.functional as F
 from models import model_utils
-
+from collections import Counter
 
 class SequentialTrainingScheme:
   """Sequential Training Scheme."""
@@ -20,10 +20,13 @@ class SequentialTrainingScheme:
 
     batch_losses = []
     batch_accs = []
+
     for batch_i, (data, targets) in enumerate(loader):
       if self.flags.debug and batch_i > 1:
         break
+
       # One-hot-ify targets
+      targets = targets.type(torch.int64)
       y = torch.eye(self.num_classes)[targets]
 
       # Determine device placement
@@ -104,7 +107,7 @@ class CascadedTrainingScheme(object):
 
       
       # One-hot-ify targets and send to output device
-      targets = targets.to(net(data, t).device, non_blocking=True)
+      targets = targets.to(net(data, t).device, non_blocking=True).type(torch.int64)
       y = torch.eye(self.num_classes)[targets]
       y = y.to(targets.device, non_blocking=True)
       

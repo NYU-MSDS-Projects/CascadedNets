@@ -276,7 +276,7 @@ def setup_model(data_handler, device, args, save_root=""):
           "temporal_affine": args.bn_time_affine,
           "temporal_stats": args.bn_time_stats,
       },
-      "imagenet": args.dataset_name == "ImageNet2012_16classes",
+      "imagenet": str.find(args.dataset_name, "ImageNet2012")>-1,
       "imagenet_pretrained": args.dataset_name == "ImageNet2012" and args.use_pretrained_weights,
       "n_channels": 1 if args.dataset_name == "FashionMNIST" else 3
   }
