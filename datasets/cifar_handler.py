@@ -214,7 +214,7 @@ def split_dev_set(
 
 def set_dataset_stats(dataset_name):
   """Set dataset stats for normalization given dataset."""
-  if dataset_name.lower() == "cifar10":
+  if "cifar10" in dataset_name.lower():
     mean = (0.4914, 0.4822, 0.4465)
     std = (0.2470, 0.2435, 0.2616)
 
@@ -247,7 +247,7 @@ def build_dataset(
     print(f"Loading {dataset_name} {dataset_key} data...")
 
   # Datsaet
-  if dataset_name.lower() == "cifar10":
+  if (dataset_name.lower() == "cifar10") or (dataset_name.lower() == "cifar10_normalized"):
     dataset_op = CIFAR10Handler
   elif dataset_name.lower() == "cifar100":
     dataset_op = CIFAR100Handler
