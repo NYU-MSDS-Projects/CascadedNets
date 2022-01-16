@@ -43,7 +43,7 @@ class SequentialEvalLoop:
         sys.stdout.flush()
         
       # One-hot-ify targets
-      y = torch.eye(self.num_classes)[targets]
+      y = torch.eye(self.num_classes)[targets].type(torch.int64)
       sample_count += y.shape[0]
 
       # Determine device placement
@@ -122,7 +122,7 @@ class CascadedEvalLoop(object):
         sys.stdout.write(f"\rBatch {batch_i+1}/{len(loader)}")
         sys.stdout.flush()
       # One-hot-ify targets
-      y = torch.eye(self.num_classes)[targets]
+      y = torch.eye(self.num_classes)[targets].type(torch.int64)
       sample_count += y.shape[0]
 
       if self.keep_logits:
