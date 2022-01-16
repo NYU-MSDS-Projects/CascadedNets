@@ -26,6 +26,7 @@ class SequentialTrainingScheme:
         break
 
       # One-hot-ify targets
+      targets = targets.type(torch.int64)
       y = torch.eye(self.num_classes)[targets]
 
       # Determine device placement
@@ -106,7 +107,7 @@ class CascadedTrainingScheme(object):
 
       
       # One-hot-ify targets and send to output device
-      targets = targets.to(net(data, t).device, non_blocking=True)
+      targets = targets.to(net(data, t).device, non_blocking=True).type(torch.int64)
       y = torch.eye(self.num_classes)[targets]
       y = y.to(targets.device, non_blocking=True)
       
