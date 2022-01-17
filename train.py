@@ -199,11 +199,11 @@ def setup_output_dir(args, save_args_to_root=True):
     out_basename += ",grayscale"
   
   if args.gauss_noise:
-    out_basename += f",gauss_noise_{args.gauss_noise_std}"
+    out_basename += f",random_gauss_noise"
   
   print("BLUR STD", args.blur_std)
   if args.blur:
-    out_basename += f",blur_{args.blur_std}"
+    out_basename += f",random_gauss_blur"
   
   save_root = os.path.join(
     args.experiment_root,
