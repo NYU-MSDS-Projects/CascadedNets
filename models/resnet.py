@@ -12,7 +12,7 @@ import functools
 import numpy as np
 import torch.nn as nn
 from collections import OrderedDict
-from torchvision.models.utils import load_state_dict_from_url
+from torch.hub import load_state_dict_from_url
 from models import custom_ops
 from models import layers as res_layers
 from models import model_utils
