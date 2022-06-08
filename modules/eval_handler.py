@@ -4,7 +4,6 @@ import sys
 import torch
 import torch.nn.functional as F
 
-
 class SequentialEvalLoop:
   """Evaluation loop for sequential model."""
 
@@ -43,6 +42,7 @@ class SequentialEvalLoop:
         sys.stdout.flush()
         
       # One-hot-ify targets
+      targets = targets.type(torch.int64)
       y = torch.eye(self.num_classes)[targets]
       sample_count += y.shape[0]
 
@@ -122,6 +122,7 @@ class CascadedEvalLoop(object):
         sys.stdout.write(f"\rBatch {batch_i+1}/{len(loader)}")
         sys.stdout.flush()
       # One-hot-ify targets
+      targets = targets.type(torch.int64)
       y = torch.eye(self.num_classes)[targets]
       sample_count += y.shape[0]
 
