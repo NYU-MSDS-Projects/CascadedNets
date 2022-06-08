@@ -176,13 +176,10 @@ class DataHandler:
 
     elif str.find(self.dataset_name.lower(), "imagenet2012")>-1:
       # Build path dataframe
-      print("EXPERIMENT_ROOT", self.experiment_root)
       path_df = imagenet2012_handler.build_path_df(self.data_root, self.experiment_root)
       test_path_df = imagenet2012_handler.build_test_path_df(self.test_dataset_root, self.grayscale, self.gauss_noise, self.blur, self.gauss_noise_std, self.blur_std)
       
       assert len(path_df), "Failed to load path df"
-      
-      print(f"size of path_df: {len(path_df)}")
       # Subset data
       if "imagenet_params" in self._kwargs:
         path_df = imagenet2012_handler.subset_path_df(
@@ -196,7 +193,6 @@ class DataHandler:
       
       # Set number of classes!
       self.num_classes = path_df.class_lbl.unique().shape[0]
-      print(f"# Classes: {self.num_classes}")
       # Build dataset dict
       dataset_dict = imagenet2012_handler.create_datasets(
         path_df, 
@@ -224,13 +220,7 @@ class DataHandler:
     ):
     """Build dataset loader."""
     # Get dataset source
-    print("SELF.DATASETS")
-    print(self.datasets.keys())
-    for k in self.datasets.keys():
-      print(k, len(self.datasets[k]))
     dataset_src = self.datasets[dataset_key]
-    print("DATASET_SRC", dataset_src)
-    print(dir(dataset_src))
     # Specify shuffling
     if dont_shuffle_train:
       shuffle = False
@@ -238,11 +228,7 @@ class DataHandler:
       shuffle = dataset_key == "train"
     
     #create weighted sampler for 16 class dataset
-    print("SELF.DATASET_NAME", self.dataset_name)
     if self.dataset_name == 'ImageNet2012_16classes_rebalanced' and dataset_key == 'train':
-      print("Creating balanced sampler for 16 class ImageNet dataset")
-      print(dataset_src.path_df.y.unique())
-      print(dataset_src.path_df.y.value_counts())
       class_sample_count = np.array([len(dataset_src.path_df[dataset_src.path_df.y == t]) for t in dataset_src.path_df.y.unique()])
       weights = 1./class_sample_count
       samples_weight = torch.from_numpy(np.array([weights[t] for t in dataset_src.path_df.y])).double()
