@@ -53,6 +53,47 @@ class AddGaussianNoise(object):
         tensor = T.functional.adjust_contrast(tensor, self.contrast)
         
         return tensor + newnoise + self.mean
+class AllRandomNoise(object):
+    def __init__(self, mean=0., std=0.04, contrast=0.1):
+        self.std = std
+        self.mean = mean
+        self.contrast = contrast
+        self.all_devs = np.arange(0.0,0.05,0.01)
+    
+    def __call__(self, tensor):
+        self.std = np.random.choice(self.all_devs)
+        noise = torch.Tensor()
+        n = tensor.size(1) * tensor.size(2)
+        sd2 = self.std * 2
+
+        while len(noise) < n:
+            # more samples than we require
+            m = 2 * (n - len(noise))
+            new = torch.randn(m) * self.std
+
+            # remove out-of-range samples
+            new = new[new >= -sd2]
+            new = new[new <= sd2]
+
+            # append to noise tensor
+            noise = torch.cat([noise, new])
+        
+        # pick first n samples and reshape to 2D
+        noise = torch.reshape(noise[:n], (tensor.size(1), tensor.size(2)))
+
+        # stack noise and translate by mean to produce std + 
+        newnoise = torch.stack([noise, noise, noise]) + self.mean
+
+        # shift image hist to mean = 0.5
+        tensor = tensor + (0.5 - tensor.mean())
+
+        # self.contrast = 1.0 / (5. * max(1.0, tensor.max() + sd2, 1.0 + (0 - tensor.min() - sd2)))
+        # print(self.contrast)
+
+        tensor = T.functional.adjust_contrast(tensor, self.contrast)
+        
+        return tensor + newnoise + self.mean
+
 
 class AddGaussianBlur(object):
     def __init__(self, kernel=7, std=1.0):
@@ -60,6 +101,18 @@ class AddGaussianBlur(object):
         self.std = std
     
     def __call__(self, tensor):
+        if self.std != 0.0:
+            tensor = T.GaussianBlur(kernel_size = 7,sigma=self.std)(tensor)
+
+        return tensor
+
+class AllRandomBlur(object):
+    def __init__(self, kernel=7):
+        self.kernel = kernel
+        self.all_devs = np.arange(0.0,1.0,0.1)
+    
+    def __call__(self, tensor):
+        self.std = np.random.choice(self.all_devs)
         if self.std != 0.0:
             tensor = T.GaussianBlur(kernel_size = 7,sigma=self.std)(tensor)
 
@@ -100,32 +153,52 @@ def get_transforms(
   """Create dataset transform list."""
   if dataset_key == "train":
     transforms_list = [
-        T.RandomCrop(32, padding=4, padding_mode="reflect"),
+        T.RandomCrop(96, padding=4),
         T.RandomHorizontalFlip()
     ]
-  else:
-    transforms_list = []
-  
-  #Add in grayscale, noise and blur handling if necessary
-  if grayscale:
-    transforms_list += [T.Grayscale(num_output_channels=3),
-                       T.ToTensor()]
-  print("BLUR", blur, blur_std)
-  print("GAUSS_NOISE", gauss_noise, gauss_noise_std)
-  if blur or gauss_noise:
-    if not grayscale:
+    if grayscale:
       transforms_list += [T.Grayscale(num_output_channels=3),
-                          T.ToTensor()]
+                        T.ToTensor()]
+    if blur or gauss_noise:
+      if not grayscale:
+        transforms_list += [T.Grayscale(num_output_channels=3),
+                            T.ToTensor()]
+      
+      if blur:
+        transforms_list += [AllRandomBlur(7)]
+      elif gauss_noise:
+        transforms_list += [AllRandomNoise()]
     
-    if blur:
-      transforms_list += [AddGaussianBlur(7,blur_std)]
-    elif gauss_noise:
-      transforms_list += [AddGaussianNoise(0.,gauss_noise_std)]
+    if (not grayscale) & (not blur) & (not gauss_noise):
+      transforms_list += [
+          T.ToTensor()
+      ]
+    print("TRANSFORMS_LIST", transforms_list)
+    
+  else:
+    transforms_list = [T.RandomCrop(96, padding=4)]
   
-  if grayscale == False & blur == False & gauss_noise == False:
-    transforms_list += [
-        T.ToTensor()
-    ]
+    #Add in grayscale, noise and blur handling for eval dataset
+    if grayscale:
+      transforms_list += [T.Grayscale(num_output_channels=3),
+                        T.ToTensor()]
+    print("BLUR", blur, blur_std)
+    print("GAUSS_NOISE", gauss_noise, gauss_noise_std)
+    if blur or gauss_noise:
+      if not grayscale:
+        transforms_list += [T.Grayscale(num_output_channels=3),
+                            T.ToTensor()]
+      
+      if blur:
+        transforms_list += [AddGaussianBlur(7,blur_std)]
+      elif gauss_noise:
+        transforms_list += [AddGaussianNoise(0.,gauss_noise_std)]
+    
+    if (not grayscale) & (not blur) & (not gauss_noise):
+      transforms_list += [
+          T.ToTensor()
+        ]
+      print("TRANSFORMS_LIST", transforms_list)
 
   if (noise_type is not None
       and (dataset_key == "train" or noise_transform_all)):
