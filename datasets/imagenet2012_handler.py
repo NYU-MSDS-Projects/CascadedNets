@@ -117,7 +117,7 @@ def build_test_path_df(test_data_root, grayscale, gauss_noise, blur, gauss_noise
   df_dict = defaultdict(list)
   for i in range(5):
     if blur:
-      test_paths = glob.glob(f'{dataset_path}/{i}/*blur_{blur_std)}*')
+      test_paths = glob.glob(f'{dataset_path}/{i}/*blur_{blur_std}*')
     elif gauss_noise:
       test_paths = glob.glob(f'{dataset_path}/{i}/*noise_{gauss_noise_std}_*')
     else:
