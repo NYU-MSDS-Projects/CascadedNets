@@ -11,31 +11,69 @@ pip install -r requirements.txt
 ```
 
 ## Training
-Use `train.sh` as a template to set your own hyperparameters, which launches `train.py`.
-In `train.sh`, be sure to specify `DATASET_ROOT`, `EXPERIMENT_ROOT`, and `SPLIT_IDXS_ROOT` to locations on you system where your datasets are located, where you want the output from `train.py` to be written (contains ckpt files, etc.), and the location for the dataset `split_idxs` (train, val, test splits) for reproducibility and consistency, respectively.
+This reposiotry supports training on a 16 class subset of the ImageNet2012 dataset initially developed here [https://github.com/rgeirhos/generalisation-humans-DNNs] under 4 different image perturbation regimes:
+* color (default - no perturbations applied)
+* grayscale 
+* gaussian noise applied to grayscale images
+* gaussian blur filter applied to color images
 
-To train the model(s), run the `train.sh` script.
+Use `train.sh` as a template to set your own hyperparameters, which launches `train.py`.
+Below are shell commands you can run to replicate training for the above perturbations where:
+* `DATASET_ROOT` = parent directory for imagenet data. Should have at least subdirectory train
+* `EXPERIMENT_ROOT` = parent output directory for storing model outputs and results (subdirectories for different types of experiments are generated automatically during run time)
+* `SPLIT_IDX_ROOT` = directory for storing train/val idx splits for reproducibility and consistency
+* `HUMAN_DATA_DIR` = directory where you have downloaded the test data provided by this repository
+
+Note that the arguments passed in the following shell commands specify key directories, the type of CNet model to run (`parallel` or `serial`), temporal difference hyperparameter (`LAMBDA`) and the image perturbation regime. The current hyperparameters in train.sh are configured to reproduce results in this paper but can be adjusted as needed or desired. Additionally, we include examples for reproducing results with the parallel and serial CNet architectures respectively.
+
+### Color
+```
+bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR parallel 1.0 false false false
+bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR serial 0.0 false false false
+```
+
+### Grayscale
+```
+bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR parallel 1.0 true false false
+bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR serial 0.0 true false false
+```
+
+### Gaussian Noise on Grayscale Images
+```
+bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR parallel 1.0 true true false
+bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR serial 0.0 true true false
+```
+
+### Gaussian Blur on Color Images
+```
+bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR parallel 1.0 true true false
+bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR serial 0.0 true true false
+```
+
 
 
 ## Evaluation
-Use `eval.sh` to load and evaluate the model stored in `EXPERIMENT_NAME`. This script will evaluate the performance of the model and, if `--keep_logits` is specified, generate and store the logits for all examples in the specified dataset. The logits are useful for downstream tasks, such as training metacognition models.
+Use `eval.sh` to run `eval.py`, which loads and evaluates the model(s) stored in `EXPERIMENT_ROOT` + `EXPERIMENT_NAME`. Unlike train, it is not necessary to specify the image perturbation regmine: `eval.py` will automatically run on all model outputs located under `EXPERIMENT_ROOT` + `EXPERIMENT_NAME`. Not that if `--keep_logits` is specified, generate and store the logits for all examples in the specified dataset. 
 
-Similar to `train.sh`, specify `DATASET_ROOT`, `EXPERIMENT_ROOT`, and `SPLIT_IDXS_ROOT`.
+Similar to `train.sh`, we provide an example shell command for running `eval.sh` where `DATASET_ROOT`, `EXPERIMENT_ROOT`, `SPLIT_IDX_ROOT`, and `HUMAN_DATA_DIR` are defined as above. Here we also specify `DATASET_KEY` which specifies which testing dataset to evaluate on: `test` (standard ImageNet test dataset) or `test_human` (human test data for this project)
 
-To evaluate the model, run `eval.sh`
+```
+bash eval.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR DATASET_KEY
+```
+### Outputs
+The CNet architecture automatically evaluates all images at every timestep. Therefore outputs are saved as a dictionary with the following keys: `logits`, `softmax`, `predictions`, `correct`, `target`, `target_confidence`, `prediction_confidence` where all dim 0 of all values = 9 given there are 9 timesteps. 
 
-Analyze results with `Analysis.ipynb`
+### Human Data-specific Analysis
+For appropriate comparisons to human performance, we only evaluate certain images at certain timesteps. Therefore to replicate performance results depicted in the paper and obtain a dataframe of predictions/ targets aligned with the relevant timesteps, run `split_exit_accuracies.py`. `DATASET_ROOT` and `HUMAN_DATA_DIR` are the same as specified above.
 
-## Results
+```
+python split_exit_accuracies.py --experiments_dir EXPERIMENTS_ROOT --human_data_dir HUMAN_DATA_DIR --output_dir OUTPUT_DIR --no-get_acc_by_cat
+```
+For obtaining accuracies by categories:
+```
+python split_exit_accuracies.py --experiments_dir EXPERIMENTS_ROOT --human_data_dir HUMAN_DATA_DIR --output_dir OUTPUT_DIR --no-get_acc_by_cat
+```
 
-<p>
-    <img src="figures/speed_acc.png" />
-</p>
+### Individual Analysis of CNet
+Analyze results and generate SAT curves using `Analysis.py`. Python calls for visualizing color, grayscale, gaussian noise and gaussian blur are included below. Note that these curves include results when every image is evaluated at every timestep.
 
-The key observations from the Figure above, which shows speed-accuracy trade offs for the six models on three data sets, are as follows. First, our canonical cascaded model, CascadedTD, obtains better anytime prediction than SerialTD-MultiHead (i.e., the architecture of SDN). CascadedTD also achieves higher asymptotic accuracy; its accuracy matches that of CascadedCE, a ResNet trained in the standard manner. Thus, cascaded models can exploit parallelism to obtain computational benefits in speeded perception without costs in accuracy.
-
-Second, while MultiHead is superior to SingleHead for serial models, the reverse is true for cascaded models. This finding is consistent with the cascaded architecture's perspective on anytime prediction as unrolled iterative estimation, rather than, as cast in SDN, as distinct read out heads from different layers of the network. Third, models trained with TD outperform models trained with standard cross-entropy loss. Training for speeded responses reorganizes knowledge in the network so that earlier layers are more effective in classifying instances.
-
-
-## Contact
-If you have any questions, feel free to contact us through email (michael.iuzzolino@colorado.edu) or Github issues. Enjoy!
