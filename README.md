@@ -1,4 +1,4 @@
-# CasCaded Networks
+# Cascaded Networks
 
 We used code from [Improving Anytime Prediction with Parallel Cascaded Networks and a Temporal-Difference Loss](https://arxiv.org/abs/2102.09808) and modified it for our experiments. 
 
