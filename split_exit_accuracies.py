@@ -9,7 +9,7 @@ import argparse
 #human_data_dir = '/scratch/sbp354/SAT_human_data'
 def setup_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--experiments_dir", type=str,
+    parser.add_argument("--experiments_root", type=str,
                         help="root directory where model outputs have been saved")
     
     parser.add_argument("--human_data_dir", type = str, 
@@ -17,6 +17,9 @@ def setup_args():
 
     parser.add_argument("--output_dir", type = str, 
                         help = "directory where accuracy outputs and results are written out")
+    
+    parser.add_argument("--dataset_name", type=str, default="ImageNet2012_16classes_rebalanced",
+                      help="Dataset name: CIFAR10, CIFAR100, TinyImageNet")
 
     parser.add_argument("--models", type = str, default = ['(1.0),parallel', '(0.0),serial'],
                         help = "base model names that are being evaluated. take the format (lambda),cascaded_scheme")
@@ -131,7 +134,7 @@ def main(args):
 
 
     output_df = pd.DataFrame(columns = ['model', 'experiment', 'exit', 'targets', 'predictions'])
-
+    experiments_dir = os.path.join(args.experiments_root, args.dataset_name, 'experiments')
     for mod in args.models:
         accuracies[mod] = {}
         output_reps[mod] = {}
@@ -140,9 +143,9 @@ def main(args):
             if exp in ['', 'grayscale']:
                 accuracies[mod][exp] = []
                 if exp == '':
-                    output_rep_file = os.path.join(args.experiments_dir, f'td{mod},lr_0.01,wd_0.0005,seed_42', 'outputs', 'output_representations__test_human__OSD.pt')
+                    output_rep_file = os.path.join(experiments_dir, f'td{mod},lr_0.01,wd_0.0005,seed_42', 'outputs', 'output_representations__test_human__OSD.pt')
                 else:
-                    output_rep_file = os.path.join(args.experiments_dir, f'td{mod},lr_0.01,wd_0.0005,seed_42,{exp}', 'outputs', 'output_representations__test_human__OSD.pt')
+                    output_rep_file = os.path.join(experiments_dir, f'td{mod},lr_0.01,wd_0.0005,seed_42,{exp}', 'outputs', 'output_representations__test_human__OSD.pt')
 
                 print(f"Reading output reps from {output_rep_file}")
                 output_reps[mod][exp] = torch.load(output_rep_file)
@@ -196,7 +199,7 @@ def main(args):
                 output_reps[mod][exp] = {}
                 accuracies[mod][exp] = {}
                 for std in noise_std:
-                    output_rep_file = os.path.join(args.experiments_dir, f'td{mod},lr_0.01,wd_0.0005,seed_42,{exp}', 'outputs', f'output_representations__test_human__OSD__gauss_noise{std}.pt')
+                    output_rep_file = os.path.join(experiments_dir, f'td{mod},lr_0.01,wd_0.0005,seed_42,{exp}', 'outputs', f'output_representations__test_human__OSD__gauss_noise{std}.pt')
                     print(f"Reading output reps from {output_rep_file}")
                     output_reps[mod][exp][std] = torch.load(output_rep_file)
 
@@ -238,7 +241,7 @@ def main(args):
                 output_reps[mod][exp] = {}
                 accuracies[mod][exp] = {}
                 for std in blur_std:
-                    output_rep_file = os.path.join(args.experiments_dir, f'td{mod},lr_0.01,wd_0.0005,seed_42,{exp}', 'outputs', f'output_representations__test_human__OSD__blur{std}.pt')
+                    output_rep_file = os.path.join(experiments_dir, f'td{mod},lr_0.01,wd_0.0005,seed_42,{exp}', 'outputs', f'output_representations__test_human__OSD__blur{std}.pt')
                     print(f"Reading output reps from {output_rep_file}")
                     output_reps[mod][exp][std] = torch.load(output_rep_file)
 
