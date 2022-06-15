@@ -3,7 +3,7 @@
 DATASET_ROOT=$1   #"/scratch/work/public/imagenet"  # Specify location of datasets
 EXPERIMENT_ROOT=$2  # Specify experiment root
 SPLIT_IDXS_ROOT=$3 # Specify root of dataset split_idxs
-TEST_DATASET_ROOT=$4
+TEST_DATASET_ROOT=$4 
 
 # Experiment name to evaluate
 MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
@@ -11,8 +11,8 @@ DATASET_NAME="ImageNet2012_16classes_rebalanced" #"ImageNet2012_16classes_rebala
 EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 TRAIN_MODE="cascaded"  # baseline, cascaded_seq, cascaded
-CASCADED_SCHEME=$5  # parallel, serial (used for train_mode=cascaded_seq)
-DATASET_KEY=$6  # used for train_mode=cascaded_seq
+CASCADED_SCHEME= "parallel" #regardless of what is set here, eval.py will evaluate all results stored under os.path.join(EXPERIMENT_ROOT, EXPERIMENT_NAME)
+DATASET_KEY=$5  # options are test or test_human
 BATCH_SIZE=128
 
 TDL_MODE="OSD"  # OSD, EWS, noise
