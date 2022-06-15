@@ -41,7 +41,7 @@ def setup_args():
   parser.add_argument("--test_dataset_root", type = str, 
                       help="Dataset root for human testing data")
   parser.add_argument("--dataset_name", type=str, required=True,
-                      help="Dataset name: CIFAR10, CIFAR100, TinyImageNet")
+                      help="Dataset name: CIFAR10, CIFAR100, TinyImageNet, ImageNet2012_16classes_rebalanced")
   parser.add_argument("--split_idxs_root", type=str, default="split_idxs",
                       help="Split idxs root")
   parser.add_argument("--labels_root", type=str, default='labels_root',
