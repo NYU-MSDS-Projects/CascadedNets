@@ -46,11 +46,9 @@ bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR serial 
 
 ### Gaussian Blur on Color Images
 ```
-bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR parallel 1.0 true true false
-bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR serial 0.0 true true false
+bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR parallel 1.0 false false true
+bash train.sh DATASET_ROOT EXPERIMENT_ROOT SPLIT_IDX_ROOT HUMAN_DATA_DIR serial 0.0 false false true
 ```
-
-
 
 ## Evaluation
 Use `eval.sh` to run `eval.py`, which loads and evaluates the model(s) stored in `EXPERIMENT_ROOT` + `EXPERIMENT_NAME`. Unlike train, it is not necessary to specify the image perturbation regmine: `eval.py` will automatically run on all model outputs located under `EXPERIMENT_ROOT` + `EXPERIMENT_NAME`. Not that if `--keep_logits` is specified, generate and store the logits for all examples in the specified dataset. 
@@ -74,6 +72,4 @@ For obtaining accuracies by categories:
 python split_exit_accuracies.py --experiments_dir EXPERIMENTS_ROOT --human_data_dir HUMAN_DATA_DIR --output_dir OUTPUT_DIR --no-get_acc_by_cat
 ```
 
-### Individual Analysis of CNet
-Analyze results and generate SAT curves using `Analysis.py`. Python calls for visualizing color, grayscale, gaussian noise and gaussian blur are included below. Note that these curves include results when every image is evaluated at every timestep.
 
