@@ -117,7 +117,10 @@ def build_test_path_df(test_data_root, grayscale, gauss_noise, blur, gauss_noise
   df_dict = defaultdict(list)
   for i in range(5):
     if blur:
+      print(f'{dataset_path}/{i}/')
+      print("BLUR_STD", blur_std) 
       test_paths = glob.glob(f'{dataset_path}/{i}/*blur_{blur_std}*')
+      print(f"# TEST_PATHS: {len(test_paths)}")
     elif gauss_noise:
       test_paths = glob.glob(f'{dataset_path}/{i}/*noise_{gauss_noise_std}_*')
     else:
@@ -232,11 +235,11 @@ class AddGaussianNoise(object):
         return torch.squeeze(tensor,0) + newnoise + self.mean
 
 class AllRandomNoise(object):
-    def __init__(self, all_devs, mean=0., std=0.04, contrast=0.2):
+    def __init__(self, mean=0., std=0.04, contrast=0.2):
         self.std = std
         self.mean = mean
         self.contrast = contrast
-        self.all_devs = all_devs
+        self.all_devs = np.arange(0.0,0.05,0.01)
     
     def __call__(self, tensor):
         self.std = np.random.choice(self.all_devs)
@@ -284,10 +287,9 @@ class AddGaussianBlur(object):
         return tensor
 
 class AllRandomBlur(object):
-    def __init__(self,all_devs, kernel=7, std=1.0):
+    def __init__(self, kernel=7, std=1.0):
         self.kernel = kernel
-        #self.all_devs = np.concatenate((np.repeat(0.0, 5), np.arange(0.0,1.0,0.2)))
-        self.all_devs = all_devs
+        self.all_devs = np.arange(0.0,1.0,0.1)
     
     def __call__(self, tensor):
         self.std = np.random.choice(self.all_devs)
@@ -298,7 +300,7 @@ class AllRandomBlur(object):
 
 
 class ImagenetDataset(Dataset):
-  def __init__(self, path_df, dataset_key, grayscale, gauss_noise, gauss_noise_std, blur, blur_std, blur_range,gauss_noise_train_range): #pg_grayscale
+  def __init__(self, path_df, dataset_key, grayscale, gauss_noise, gauss_noise_std, blur, blur_std): #pg_grayscale
     self.path_df = path_df
     self.dataset_key = dataset_key
     self.grayscale = grayscale
@@ -306,8 +308,6 @@ class ImagenetDataset(Dataset):
     self.gauss_noise_std = gauss_noise_std
     self.blur = blur
     self.blur_std = blur_std
-    self.blur_range = blur_range
-    self.gauss_noise_train_range = gauss_noise_train_range
 
     # Setup transforms and paths
     self._setup_transforms()
@@ -329,15 +329,15 @@ class ImagenetDataset(Dataset):
                       T.ToTensor(),
                         EnforceShape()] #pg_grayscale
         if self.blur:
-          xform_list += [AllRandomBlur(all_devs = self.blur_range, kernel=49, std=3.0),
+          xform_list += [AllRandomBlur(kernel=49, std=3.0),
                       EnforceShape()]
         elif self.gauss_noise:
-          xform_list += [AllRandomNoise(all_devs = self.gauss_noise_train_range),
+          xform_list += [AllRandomNoise(),
                         EnforceShape()]
       else:
         if self.blur:
           xform_list += [T.ToTensor(),
-                        AllRandomBlur(all_devs = self.blur_range, kernel=49, std=3.0),
+                        AllRandomBlur(kernel=49, std=3.0),
                         EnforceShape()]
         elif self.gauss_noise:
           xform_list += [T.ToTensor(),
@@ -399,7 +399,7 @@ class ImagenetDataset(Dataset):
     return img, y  #, label
 
  
-def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_root, grayscale, gauss_noise, gauss_noise_std, blur, blur_std, blur_range, gauss_noise_train_range, test_path_df): #pg_grayscale
+def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_root, grayscale, gauss_noise, gauss_noise_std, blur, blur_std, test_path_df): #pg_grayscale
   # Label handler
   label_handler = Imagenet16Labels(experiment_root)
   # Make sure split idx root exists
@@ -413,24 +413,24 @@ def create_datasets(path_df, val_split, test_split, split_idxs_root, experiment_
   # Train
   print("Loading train data...")
   train_df = path_df.loc[split_locs["train"]]
-  train_dataset = ImagenetDataset(train_df, 'train', grayscale, gauss_noise, gauss_noise_std, blur, blur_std, blur_range,gauss_noise_train_range) #pg_grayscale
+  train_dataset = ImagenetDataset(train_df, 'train', grayscale, gauss_noise, gauss_noise_std, blur, blur_std) #pg_grayscale
   print(f"{len(train_dataset):,} train examples loaded.")
 
   # Validation
   print("Loading validation data...")
   val_df = path_df.loc[split_locs["val"]]
-  val_dataset = ImagenetDataset(val_df, 'val',grayscale,gauss_noise, gauss_noise_std,blur, blur_std, blur_range,gauss_noise_train_range) #pg_grayscale
+  val_dataset = ImagenetDataset(val_df, 'val',grayscale,gauss_noise, gauss_noise_std,blur, blur_std) #pg_grayscale
   print(f"{len(val_dataset):,} train examples loaded.")
 
   # Test
   print("Loading test data...")
   test_df = path_df.loc[split_locs["test"]]
-  test_dataset = ImagenetDataset(test_df, 'test',grayscale, gauss_noise, gauss_noise_std,blur, blur_std, blur_range,gauss_noise_train_range) #pg_grayscale
+  test_dataset = ImagenetDataset(test_df, 'test',grayscale, gauss_noise, gauss_noise_std,blur, blur_std) #pg_grayscale
   print(f"{len(test_dataset):,} test examples loaded.")
 
   # Test human data
   print("Loading human test data...")
-  test_human_dataset = ImagenetDataset(test_path_df, 'test_human',grayscale, gauss_noise, gauss_noise_std,blur, blur_std, blur_range,gauss_noise_train_range) 
+  test_human_dataset = ImagenetDataset(test_path_df, 'test_human',grayscale, gauss_noise, gauss_noise_std,blur, blur_std) 
   print(f"{len(test_human_dataset):,} human test examples loaded.")
   
 

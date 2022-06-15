@@ -59,7 +59,12 @@ def setup_args():
                       help="num_workers")
   parser.add_argument("--drop_last", action="store_true", default=False,
                       help="Drop last batch remainder")
-  
+  parser.add_argument("--eval_gauss_noise_range", nargs="+", type=float, 
+                      default=[0,0,0],
+                      help="range of std values of gaussian noise that will be applied to test data")
+  parser.add_argument("--eval_blur_range", nargs="+", type=float, 
+                      default=[0,0,0],
+                      help="range of std values of gaussian noise that will be applied to test data")
   # Model
   parser.add_argument("--model_key", type=str, default="resnet18",
                       help="Model: resnet18, resnet34, ..., densenet_cifar")
@@ -100,13 +105,6 @@ def setup_args():
                       help="Add gaussian blur to images for testing and training")
   parser.add_argument("--blur_std", type=list, default = [],
                       help="Standard deviation of gaussian blur to apply when args.gauss_blur = true")
-  parser.add_argument("--blur_range",nargs="+", type=float,
-                      default=[0,0,0,0,0],
-                      help = "Range of blur_std values to sample over when training" )
-  parser.add_argument("--gauss_noise_train_range",nargs="+", type=float,
-                      default=[0,0,0,0,0],
-                      help = "Range of gaussian noise std values to sample over when training" )
-  
   
   # Optimizer
   parser.add_argument("--learning_rate", type=float, default=0.1,
@@ -266,42 +264,59 @@ def main(args):
         os.makedirs(exp_path)
       
     output_rep_root = os.path.join(exp_path, "outputs")
-    print("OUTPUT_REP_ROOT", output_rep_root)
     if not os.path.exists(output_rep_root):
       os.makedirs(output_rep_root)
 
     
-    #Handling for evaluation across different ranges of noise and blur perturbations (we need to loop through creating datahandler and generating results)
-    if str.find(exp_path, 'blur')>-1:
-      print("RUNNING BLUR EVALUATION")
-      args.blur = True
-      if args.dataset_name == 'ImageNet2012_16classes_rebalanced':
-        print("running color for blur images")
-        args.grayscale = False
-      else:
-        args.grayscale = True
-      if str.find(exp_path, '0_0.5_step_0.1')>0:
-        args.blur_range = [0, 0.1, 0.2, 0.3, 0.4, 0.5]
-      elif str.find(exp_path, '0_1.0_half')>0:
-        args.blur_range = [0, 0,0,0,0,0,0.2, 0.4, 0.6, 0.8, 1.0]
-      elif str.find(exp_path, '0_0.5_half')>0:
-        args.blur_range = [0, 0,0,0,0,0,0.1, 0.2, 0.3, 0.4, 0.5]
-      elif str.find(exp_path, '0_1.0_step_0.2')>0:
-        args.blur_range = [0, 0.2, 0.4, 0.6, 0.8, 1.0]
+    '''
+    Handling for evaluation across different ranges of noise and blur perturbations 
+    We need to loop through creating datahandler and generating results
+    We also only need to do this when evaluating on standard ImageNet test data (not human data) because the 
+    human data provided in this repository already has blur and noise perturbations applied.
+    It is possible to run evaluation on custom ranges of blur and noise standard deviation values and this is what 
+    this code allows for. 
+    '''
+    if ((str.find(exp_path, 'blur')>-1)|(str.find(exp_path, 'gauss_noise')>-1)):
+      #Set up blur-specific params
+      if (str.find(exp_path, 'blur')>-1):
+        args.blur = True
+        if args.dataset_name == 'ImageNet2012_16classes_rebalanced':
+          args.grayscale = False
+        else:
+          args.grayscale = True
     
-      args.gauss_noise = False
-      args.gauss_noise_std = 0.0
-      if args.dataset_key == 'test_human':
-        eval_blur_range = eval_blur_range = [0, 3, 9]
-      else:
-        eval_blur_range = np.arange(0, 7, 0.5)
+        args.gauss_noise = False
+        args.gauss_noise_std = 0.0
+        
+        if args.dataset_key == 'test_human':
+          eval_std_range = [0,3,9]
+        else:
+          eval_std_range = args.eval_blur_range
       
-      for s in eval_blur_range:
-        args.blur_std = s
-        rep_basename = f"output_representations__{args.dataset_key}__{args.tdl_mode}__blur{s}.pt"
+      #Set up noise-specific params
+      elif (str.find(exp_path, 'gauss_noise')>-1):
+        args.gauss_noise = True
+        args.grayscale = True
+        
+        args.blur = False
+        args.blur_std = 0.0
+        
+        if args.dataset_key == 'test_human':
+          eval_std_range = [0, 0.04, 0.16]
+        else:
+          eval_std_range = args.eval_gauss_noise_range
+
+      for s in eval_std_range:
+        if (str.find(exp_path, 'blur')>-1):
+          args.blur_std = s
+          rep_basename = f"output_representations__{args.dataset_key}__{args.tdl_mode}__blur{s}.pt"
+          embed_basename = f"emeddings__{args.dataset_key}__{args.tdl_mode}__blur{s}.npy"
+        elif (str.find(exp_path, 'gauss_noise')>-1):
+          args.gauss_noise_std = s
+          rep_basename = f"output_representations__{args.dataset_key}__{args.tdl_mode}__gauss_noise{s}.pt"
+          embed_basename = f"emeddings__{args.dataset_key}__{args.tdl_mode}__gauss_noise{s}.npy"
+
         output_rep_path = os.path.join(output_rep_root, rep_basename)
-    
-        embed_basename = f"emeddings__{args.dataset_key}__{args.tdl_mode}__blur{s}.npy"
         output_embeddings_path = os.path.join(output_rep_root, embed_basename)
 
         if os.path.exists(output_rep_path) and not args.force_overwrite:
@@ -325,8 +340,6 @@ def main(args):
             "gauss_noise_std":args.gauss_noise_std,
             "blur":args.blur,
             "blur_std":args.blur_std,
-            "blur_range":args.blur_range,
-            "gauss_noise_train_range": args.gauss_noise_train_range,
             "val_split": loaded_args.val_split,
             "split_idxs_root": args.split_idxs_root,
             "noise_type": loaded_args.augmentation_noise_type,
@@ -341,7 +354,6 @@ def main(args):
 
         print("DATA_DICT")
         print(data_dict)
-        print("gauss_noise_train_range",args.gauss_noise_train_range)
         
         # Set Loaders
         loader = data_handler.build_loader(args.dataset_key, loaded_args)
@@ -398,8 +410,8 @@ def main(args):
                                           args.target_IC_inference_costs)
             # Set IC costs path and save to exp dir
             IC_costs_savepath = os.path.join(exp_path, "ic_costs.pt")
-            torch.save({"flops": all_flops, "normed": normed_flops}, 
-                      IC_costs_savepath)
+            #torch.save({"flops": all_flops, "normed": normed_flops}, 
+            #          IC_costs_savepath)
 
           metrics_path = os.path.join(exp_path, f"metrics.pt")
         
@@ -454,197 +466,20 @@ def main(args):
             y = logged_data["y"].to(logits.device)
             output_reps = compute_output_representations(logits, y)
 
-            print(f"Saving output representations to {output_rep_path}")
-            torch.save(output_reps, output_rep_path)
+            #print(f"Saving output representations to {output_rep_path}")
+            #torch.save(output_reps, output_rep_path)
           
           if args.keep_embeddings:
             embeddings = logged_data["embeddings"].cpu().detach().numpy()
             embeddings = embeddings.astype(np.float32)
-            print(f"Saving embeddings to {output_embeddings_path}")
-            np.save(output_embeddings_path, embeddings)
+            #print(f"Saving embeddings to {output_embeddings_path}")
+            #np.save(output_embeddings_path, embeddings)
         except:
           print(f"Could not plot training curves. Issue with file {metrics_path}")
 
-    elif (str.find(exp_path, 'gauss_noise')>-1) & (str.find(exp_path, 'grayscale')>-1):
-      print("RUNNING NOISE EVALUATION")
-      args.gauss_noise = True
-      args.grayscale = True
-      args.blur = False
-      args.blur_std = 0.0
-      if args.dataset_key == 'test_human':
-        eval_noise_range = [0, 0.04, 0.16]
-      else:
-        eval_noise_range = np.arange(0.09, 0.28, 0.02)
-      print(f"EVAL_NOISE_RANGE = {eval_noise_range}")
-      for n in eval_noise_range:
-        args.gauss_noise_std = n
-        rep_basename = f"output_representations__{args.dataset_key}__{args.tdl_mode}__gauss_noise{n}.pt"
-        output_rep_path = os.path.join(output_rep_root, rep_basename)
     
-        embed_basename = f"emeddings__{args.dataset_key}__{args.tdl_mode}__gauss_noise{n}.npy"
-        output_embeddings_path = os.path.join(output_rep_root, embed_basename)
-
-        if os.path.exists(output_rep_path) and not args.force_overwrite:
-          continue
-
-        if os.path.exists(output_embeddings_path) and not args.force_overwrite:
-          continue
-        
-        exp_args_path = os.path.join(load_exp_path, "args.json")
-        with open(exp_args_path, "r") as infile:
-          loaded_args = argparse.Namespace(**json.load(infile))
-
-        # Data Handler
-        data_dict = {
-            "dataset_name": loaded_args.dataset_name,
-            "data_root": args.dataset_root,
-            "test_dataset_root":args.test_dataset_root,
-            "experiment_root" : args.experiment_root,
-            "grayscale": args.grayscale,
-            "gauss_noise":args.gauss_noise,
-            "gauss_noise_std":args.gauss_noise_std,
-            "blur":args.blur,
-            "blur_std":args.blur_std,
-            "blur_range":args.blur_range,
-            "gauss_noise_train_range": args.gauss_noise_train_range,
-            "val_split": loaded_args.val_split,
-            "split_idxs_root": args.split_idxs_root,
-            "noise_type": loaded_args.augmentation_noise_type,
-            "load_previous_splits": True,
-            "verbose": False,
-            "imagenet_params": {
-              #"target_classes": ["terrier"],
-              "max_classes": 1000,
-            }
-        }
-        data_handler = DataHandler(**data_dict)
-        
-        # Set Loaders
-        loader = data_handler.build_loader(args.dataset_key, loaded_args)
-        print("Data handler loaded.")
-        print(len(loader))
-
-        figs_root = os.path.join(exp_path, "figs")
-        if not os.path.exists(figs_root):
-          os.makedirs(figs_root)
-        try:
-          model_config_path = os.path.join(load_exp_path, "model_config.pt")
-          model_dict = torch.load(model_config_path)
-
-          # Load model ckpts
-          ckpt_dir = os.path.join(load_exp_path, "ckpts")
-          ckpts = np.sort(glob.glob(f"{ckpt_dir}/ckpt__*.pt"))
-          try:
-            selected_ckpt = ckpts[-1]
-            print(f"Loading from ckpt {selected_ckpt}")
-          except Exception as e:
-            print(f"**Exception: {e}")
-            continue
-        
-          model_dict["pretrained"] = True
-          model_dict["pretrained_path"] = selected_ckpt
-          
-          if args.train_mode == "cascaded_seq":
-            model_dict["cascaded"] = True
-            model_dict["bn_opts"]["temporal_stats"] = False
-            model_dict["cascaded_scheme"] = args.cascaded_scheme
-          
-          if args.tdl_mode != "OSD":
-            model_dict["tdl_mode"] = args.tdl_mode
-            model_dict["tdl_alpha"] = args.tdl_alpha
-            model_dict["noise_var"] = args.noise_var
-            
-          # Model init op
-          if args.model_key.startswith("resnet"):
-            model_init_op = resnet
-          elif args.model_key.startswith("densenet"):
-            model_init_op = densenet
-
-          # Initialize net
-          print("Instantiating model...")
-          try:
-            net = model_init_op.__dict__[args.model_key](**model_dict).to(args.device)
-          except:
-            print(f"unable to load model from {exp_path} successfully")
-            continue
-          
-          if args.train_mode in ["ic_only", "sdn"]:
-            all_flops, normed_flops = sdn_utils.compute_inference_costs(
-                data_handler, model_dict, args)
-            net.set_target_inference_costs(normed_flops, 
-                                          args.target_IC_inference_costs)
-            # Set IC costs path and save to exp dir
-            IC_costs_savepath = os.path.join(exp_path, "ic_costs.pt")
-            torch.save({"flops": all_flops, "normed": normed_flops}, 
-                      IC_costs_savepath)
-
-          metrics_path = os.path.join(exp_path, f"metrics.pt")
-          try:
-            print(f"Loading {metrics_path}")
-            train_metrics = torch.load(metrics_path)
-            plot_training_curves(train_metrics, figs_root)
-          except:
-            print(f"Could not plot training curves. Issue with file {metrics_path}")
-          try:
-            tau_epoch_asymptote = 1 if args.train_mode == "ic_only" else 100
-            tau_scheduling_active = args.train_mode != "ic_only"
-            tau_handler = sdn_utils.IC_tau_handler(
-                init_tau=loaded_args.init_tau,
-                tau_targets=loaded_args.target_IC_inference_costs, 
-                epoch_asymptote=tau_epoch_asymptote,
-                active=tau_scheduling_active)
-          except:
-            tau_handler = None
-          
-          if args.n_timesteps is not None:
-            n_timesteps = args.n_timesteps
-          else:
-            n_timesteps = net.module.timesteps
-          
-          eval_fxn = eval_handler.get_eval_loop(
-            n_timesteps,
-            data_handler.num_classes,
-            cascaded=args.cascaded,
-            flags=args,
-            keep_logits=args.keep_logits,
-            keep_embeddings=args.keep_embeddings,
-            tau_handler=tau_handler,
-          )
-
-          criterion = losses.categorical_cross_entropy
-
-          test_loss, test_acc, logged_data = eval_fxn(
-            net, 
-            loader, 
-            criterion, 
-            0, 
-            args.device,
-          )
-
-          if args.train_mode == "baseline":
-            final_mean_test_acc = np.mean(test_acc)
-          else:
-            final_mean_test_acc = test_acc[-1]
-          print(f"Test Acc: {final_mean_test_acc*100:0.2f}%")
-
-          if args.keep_logits:
-            logits = logged_data["logits"]
-            y = logged_data["y"].to(logits.device)
-            output_reps = compute_output_representations(logits, y)
-
-            print(f"Saving output representations to {output_rep_path}")
-            torch.save(output_reps, output_rep_path)
-          
-          if args.keep_embeddings:
-            embeddings = logged_data["embeddings"].cpu().detach().numpy()
-            embeddings = embeddings.astype(np.float32)
-            print(f"Saving embeddings to {output_embeddings_path}")
-            np.save(output_embeddings_path, embeddings)
-        except:
-          print("could not load model_config")
-      #Handling for grayscale and color (no need to loop through hyperaparameter vals)
-    elif (str.find(exp_path, 'blur')==-1) & (str.find(exp_path, 'noise')==-1):
-        #((args.dataset_key == 'test_human') & ((str.find(exp_path, 'blur')>-1) | (str.find(exp_path, 'noise')>-1))):
+    #Handling for grayscale, color and human test data eval (no need to loop through hyperaparameter vals)
+    else:
       if str.find(exp_path, 'grayscale')>-1:
         print("RUNNING EVAL FOR GRAYSCALE")
         print(f"Setting grayscale = True for {exp_path}")
@@ -653,20 +488,20 @@ def main(args):
         args.gauss_noise_std = 0.0
         args.blur = False
         args.blur_std = 0.0
-      elif (str.find(exp_path, 'blur')>-1) & (args.dataset_key == 'test_human'):
-        print("RUNNING BLUR WITH TEST_HUMAN")
-        args.grayscale = False
-        args.gauss_noise = False
-        args.gauss_noise_std = 0.0
-        args.blur = True
-        args.blur_std = 0.0
-      elif (str.find(exp_path, 'noise')>-1) & (args.dataset_key == 'test_human'):
-        print("RUNNING NOISE WITH TEST_HUMAN")
-        args.grayscale = True
-        args.gauss_noise = True
-        args.gauss_noise_std = 0.0
-        args.blur = False
-        args.blur_std = 0.0
+      #elif (str.find(exp_path, 'blur')>-1) & (args.dataset_key == 'test_human'):
+      #  print("RUNNING BLUR WITH TEST_HUMAN")
+      #  args.grayscale = False
+      #  args.gauss_noise = False
+      #  args.gauss_noise_std = 0.0
+      #  args.blur = True
+      #  args.blur_std = 0.0
+      #elif (str.find(exp_path, 'noise')>-1) & (args.dataset_key == 'test_human'):
+      #  print("RUNNING NOISE WITH TEST_HUMAN")
+      #  args.grayscale = True
+      #  args.gauss_noise = True
+      #  args.gauss_noise_std = 0.0
+      #  args.blur = False
+      #  args.blur_std = 0.0
       else:
         print("RUNNING EVAL FOR COLOR")
         args.grayscale = False
@@ -701,7 +536,6 @@ def main(args):
           "gauss_noise_std":args.gauss_noise_std,
           "blur":args.blur,
           "blur_std":args.blur_std,
-          "blur_range":args.blur_range,
           "val_split": loaded_args.val_split,
           "split_idxs_root": args.split_idxs_root,
           "noise_type": loaded_args.augmentation_noise_type,
@@ -769,8 +603,8 @@ def main(args):
                                         args.target_IC_inference_costs)
           # Set IC costs path and save to exp dir
           IC_costs_savepath = os.path.join(exp_path, "ic_costs.pt")
-          torch.save({"flops": all_flops, "normed": normed_flops}, 
-                    IC_costs_savepath)
+          #torch.save({"flops": all_flops, "normed": normed_flops}, 
+          #          IC_costs_savepath)
 
         metrics_path = os.path.join(exp_path, f"metrics.pt")
         try:
@@ -826,14 +660,14 @@ def main(args):
           y = logged_data["y"].to(logits.device)
           output_reps = compute_output_representations(logits, y)
 
-          print(f"Saving output representations to {output_rep_path}")
-          torch.save(output_reps, output_rep_path)
+          #print(f"Saving output representations to {output_rep_path}")
+          #torch.save(output_reps, output_rep_path)
         
         if args.keep_embeddings:
           embeddings = logged_data["embeddings"].cpu().detach().numpy()
           embeddings = embeddings.astype(np.float32)
-          print(f"Saving embeddings to {output_embeddings_path}")
-          np.save(output_embeddings_path, embeddings)
+          #print(f"Saving embeddings to {output_embeddings_path}")
+          #np.save(output_embeddings_path, embeddings)
       except:
         print("Could not load model config")
 

@@ -108,10 +108,6 @@ def setup_args():
                       help="Add gaussian blur to images for testing and training")
   parser.add_argument("--blur_std", type=float,
                       help="Standard deviation of gaussian blur to apply when args.gauss_blur = true")
-  parser.add_argument("--blur_range",nargs="+", type=float,
-                      help = "Range of blur_std values to sample over when training" )
-  parser.add_argument("--gauss_noise_train_range",nargs="+", type=float,
-                      help = "Range of gaussian noise std values to sample over when training" )
   
   # Optimizer
   parser.add_argument("--learning_rate", type=float, default=0.1,
@@ -191,7 +187,6 @@ def setup_output_dir(args, save_args_to_root=True):
   print("ARGS.BLUR:", args.blur)
   print("ARGS.GAUSS_NOISE:", args.gauss_noise)
   print("ARGS.GAUSS_NOISE_STD:", args.gauss_noise_std)
-  print("ARGS.GAUSS_NOISE_TRAIN_RANGE:", args.gauss_noise_train_range)
 
   if args.train_mode in ["sdn", "cascaded"] and args.use_pretrained_weights:
     out_basename += f",pretrained_weights"
@@ -206,13 +201,8 @@ def setup_output_dir(args, save_args_to_root=True):
     out_basename += ",grayscale"
   
   if args.gauss_noise:
-    if len(args.gauss_noise_train_range)> 0:
-      noise_range = '_'.join([str(s) for s in args.gauss_noise_train_range])
-      out_basename += f",random_gauss_noise_{noise_range}"
-    else:
-      out_basename += f",random_gauss_noise"
+    out_basename += f",random_gauss_noise"
   
-  print("BLUR STD", args.blur_std)
   if args.blur:
     out_basename += f",random_gauss_blur"
   
@@ -245,8 +235,6 @@ def setup_dataset(args):
       "gauss_noise_std": args.gauss_noise_std,
       "blur": args.blur,
       "blur_std":args.blur_std,
-      "blur_range": args.blur_range,
-      "gauss_noise_train_range": args.gauss_noise_train_range,
       "val_split": args.val_split,
       "test_split": args.test_split,
       "split_idxs_root": args.split_idxs_root,

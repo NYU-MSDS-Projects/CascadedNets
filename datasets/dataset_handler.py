@@ -22,8 +22,6 @@ class DataHandler:
       gauss_noise_std,
       blur,
       blur_std,
-      blur_range,
-      gauss_noise_train_range,
       val_split=0.1,
       test_split=0.1,
       split_idxs_root="split_idxs",
@@ -47,8 +45,6 @@ class DataHandler:
     self.gauss_noise_std = gauss_noise_std
     self.blur = blur
     self.blur_std = blur_std
-    self.blur_range = blur_range
-    self.gauss_noise_train_range = gauss_noise_train_range
     self._kwargs = kwargs
     
     self._set_num_classes(dataset_name)
@@ -133,8 +129,6 @@ class DataHandler:
     print("self.gauss_noise_std", self.gauss_noise_std)
     print("self.blur", self.blur)
     print("self.blur_std", self.blur_std)
-    print("self.blur_range", self.blur_range)
-    print("self.gauss_noise_train_range", self.gauss_noise_train_range)
     if "cifar" in self.dataset_name.lower():
       dataset_dict = cifar_handler.create_datasets(
         self.data_root,
@@ -205,8 +199,6 @@ class DataHandler:
         self.gauss_noise_std,
         self.blur,
         self.blur_std,
-        self.blur_range,
-        self.gauss_noise_train_range,
         test_path_df
       )
     
