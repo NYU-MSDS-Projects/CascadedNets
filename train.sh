@@ -1,9 +1,9 @@
 #!/bin/bash
 
-DATASET_ROOT="/scratch/work/public/imagenet"  # /scratch/work/public/imagenet, ../cascade_output/datasets
-EXPERIMENT_ROOT="../cascade_output/experiments"  # Specify experiment root
-SPLIT_IDXS_ROOT="../cascade_output/split_idx"  # Specify root of dataset split_idxs
-TEST_DATASET_ROOT='/scratch/sbp354/SAT_human_data'
+DATASET_ROOT=$1  # /scratch/work/public/imagenet, ../cascade_output/datasets
+EXPERIMENT_ROOT=$2 # Specify experiment root
+SPLIT_IDXS_ROOT=$3  # Specify root of dataset split_idxs
+TEST_DATASET_ROOT=$4
 
 MODEL="resnet18"  # resnet18, resnet34, resnet50, densenet_cifar
 DATASET_NAME="ImageNet2012_16classes_rebalanced"  # CIFAR10, CIFAR100, TinyImageNet, ImageNet2012
@@ -11,7 +11,7 @@ EXPERIMENT_NAME="${MODEL}_${DATASET_NAME}"
 
 # Model params
 TRAIN_MODE="cascaded"  # baseline, cascaded
-CASCADED_SCHEME="parallel"  # serial, parallel
+CASCADED_SCHEME=$5  # serial, parallel
 
 MULTIPLE_FCS=false
 
@@ -21,12 +21,11 @@ PRETRAINED_WEIGHTS=false
 USE_ALL_ICS=false
 
 #Image perturbations
-GRAYSCALE=true
-GAUSS_NOISE=true
+GRAYSCALE=$6
+GAUSS_NOISE=$7
 GAUSS_NOISE_STD=0.0
-BLUR=false
+BLUR=$8
 BLUR_STD=0.0
-BLUR_RANGE = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
 
 # Optimizer / LR Scheduling
 LR_MILESTONES=(30 60 90)
@@ -70,7 +69,6 @@ do
       cmd+=( --weight_decay $WEIGHT_DECAY )
       cmd+=( --gauss_noise_std $GAUSS_NOISE_STD )
       cmd+=( --blur_std $BLUR_STD )
-      cmd+=( --blur_range $BLUR_RANGE )
       ${NESTEROV} && cmd+=( --nesterov )
       ${TAU_WEIGHTED_LOSS} && cmd+=( --tau_weighted_loss )
       ${PRETRAINED_WEIGHTS} && cmd+=( --use_pretrained_weights )
